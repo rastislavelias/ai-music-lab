@@ -96,18 +96,19 @@ async function finish(track: Track, result: string | undefined) {
 }
 
 async function poll(track: Track) {
-  if (!track.upstreamTaskId) return fail(track.id, "Chýba ACE-Step task ID.");
+  if (!track.upstreamTaskId)
+    return fail(track.id, "ACE-Step task ID is missing.");
   if (
     track.submittedAt &&
     Date.now() - track.submittedAt.getTime() > taskTimeoutMs
   ) {
-    return fail(track.id, "Generovanie prekročilo časový limit.");
+    return fail(track.id, "Generation exceeded the configured time limit.");
   }
   try {
     const result = await ace.query(track.upstreamTaskId);
     if (result.status === 1) await finish(track, result.result);
     if (result.status === 2)
-      await fail(track.id, result.error || "ACE-Step generovanie zlyhalo.");
+      await fail(track.id, result.error || "ACE-Step generation failed.");
   } catch (error) {
     console.warn(`[worker] Poll failed for ${track.id}: ${message(error)}`);
   }
@@ -119,7 +120,8 @@ async function main() {
     where: { status: "SUBMITTING" },
     data: {
       status: "FAILED",
-      error: "Worker sa reštartoval počas odosielania; opakujte generovanie.",
+      error:
+        "The worker restarted while submitting the job. Please generate the track again.",
       completedAt: new Date(),
     },
   });

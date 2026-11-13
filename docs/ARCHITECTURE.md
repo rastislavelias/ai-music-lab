@@ -1,25 +1,25 @@
-# Architektúra
+# Architecture
 
-## Tok jednej úlohy
+## Job flow
 
-1. Next.js API zapíše nový `Track` do SQLite so stavom `QUEUED`.
-2. Worker atomicky zmení stav na `SUBMITTING` a zavolá oficiálny `POST /release_task`.
-3. Uloží `task_id`, nastaví `PROCESSING` a periodicky volá `POST /query_result`.
-4. Pri stave `1` prečíta JSON reťazec `result`, použije vrátenú `/v1/audio?path=...` URL a MP3 skopíruje do `data/tracks`.
-5. Až po atomickom premenovaní `.part` súboru nastaví `COMPLETED`. UI polluje vlastné API a zobrazí prehrávač.
+1. The Next.js API writes a new `Track` to SQLite with status `QUEUED`.
+2. The worker atomically changes it to `SUBMITTING` and calls the official `POST /release_task` endpoint.
+3. It saves the returned `task_id`, changes the status to `PROCESSING`, and periodically calls `POST /query_result`.
+4. When ACE-Step reports status `1`, the worker parses the JSON string in `result`, follows the returned `/v1/audio?path=...` URL, and copies the MP3 into `data/tracks`.
+5. Only after atomically renaming the `.part` file does it set `COMPLETED`. The UI polls its own API and displays the player.
 
-## Komponenty
+## Components
 
-- `apps/web`: Next.js 16 App Router, React 19, strict TypeScript, Tailwind 4, serverové API routes.
-- `apps/worker`: dlhobežiaci Node worker; fronta a polling sú mimo web procesu.
-- `packages/db`: Prisma schema, klient a verzované migrácie pre SQLite.
-- `acestep`: oficiálny Python/CUDA image v API režime; nie je forknutý ani prebaľovaný.
-- bind-mounty `data/`: jediná hranica perzistentných dát a zálohy.
+- `apps/web`: Next.js 16 App Router, React 19, strict TypeScript, Tailwind 4, and server-side API routes.
+- `apps/worker`: long-running Node worker; queue processing and polling stay outside the web process.
+- `packages/db`: Prisma schema, client, and versioned SQLite migrations.
+- `acestep`: official Python/CUDA image in API mode; it is neither forked nor repackaged.
+- `data/` bind mounts: the single persistence and backup boundary.
 
-## Prečo worker nie je v Next.js
+## Why the worker is separate from Next.js
 
-Dlhé GPU úlohy a polling nepatria do request lifecycle. Samostatný proces prežije zatvorený browser, dá sa reštartovať nezávisle a neskôr nahradiť robustnejšou queue bez zmeny UI kontraktu.
+Long GPU jobs and polling do not belong in a request lifecycle. A dedicated process continues after the browser closes, restarts independently, and can later be replaced with a more robust queue without changing the UI contract.
 
-## Konzistencia
+## Consistency
 
-SQLite je pre lokálne MVP dostačujúca: jeden worker a nízky počet webových zápisov. Claim používa podmienený `updateMany`, takže dve worker slučky nemajú prevziať tú istú `QUEUED` položku. Horizontálne škálovanie, multi-user prevádzka alebo sieťový filesystem sú dôvodom pre prechod na PostgreSQL a dedikovanú queue.
+SQLite is sufficient for this local MVP: one worker and a low volume of web writes. Claiming uses a conditional `updateMany`, preventing two worker loops from taking the same `QUEUED` item. Horizontal scaling, multiple users, or a network filesystem would justify PostgreSQL and a dedicated queue.

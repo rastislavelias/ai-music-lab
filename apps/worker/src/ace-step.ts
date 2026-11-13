@@ -43,7 +43,8 @@ export class AceStepClient {
         }),
       },
     );
-    if (!response.data?.task_id) throw new Error("ACE-Step nevrátil task_id.");
+    if (!response.data?.task_id)
+      throw new Error("ACE-Step did not return a task_id.");
     return response.data.task_id;
   }
 
@@ -59,36 +60,40 @@ export class AceStepClient {
     const item = response.data?.find(
       (candidate) => candidate.task_id === taskId,
     );
-    if (!item) throw new Error("ACE-Step nevrátil stav úlohy.");
+    if (!item) throw new Error("ACE-Step did not return the task status.");
     return item;
   }
 
   parseFirstAudio(result: string | undefined): AceTaskResult {
-    if (!result) throw new Error("ACE-Step dokončil úlohu bez výsledku.");
+    if (!result)
+      throw new Error("ACE-Step completed the task without a result.");
     const parsed: unknown = JSON.parse(result);
     if (!Array.isArray(parsed))
-      throw new Error("ACE-Step vrátil neplatný výsledok.");
+      throw new Error("ACE-Step returned an invalid result.");
     const audio = parsed.find(
       (value): value is AceTaskResult =>
         typeof value === "object" &&
         value !== null &&
         typeof (value as { file?: unknown }).file === "string",
     );
-    if (!audio) throw new Error("ACE-Step výsledok neobsahuje audio súbor.");
+    if (!audio)
+      throw new Error("The ACE-Step result does not contain an audio file.");
     return audio;
   }
 
   async download(file: string): Promise<Response> {
     const url = new URL(file, `${this.baseUrl}/`);
     if (url.origin !== new URL(this.baseUrl).origin) {
-      throw new Error("ACE-Step vrátil audio URL z neočakávaného servera.");
+      throw new Error(
+        "ACE-Step returned an audio URL from an unexpected server.",
+      );
     }
     const response = await fetch(url, {
       headers: this.authHeaders(),
       signal: AbortSignal.timeout(120_000),
     });
     if (!response.ok || !response.body)
-      throw new Error(`Stiahnutie audia zlyhalo (HTTP ${response.status}).`);
+      throw new Error(`Audio download failed (HTTP ${response.status}).`);
     return response;
   }
 
@@ -99,11 +104,11 @@ export class AceStepClient {
     });
     const body = (await response.json().catch(() => null)) as T | null;
     if (!response.ok)
-      throw new Error(`ACE-Step API zlyhalo (HTTP ${response.status}).`);
+      throw new Error(`ACE-Step API failed (HTTP ${response.status}).`);
     const envelope = body as ApiEnvelope<unknown> | null;
     if (!envelope || envelope.code !== 200 || envelope.error) {
       throw new Error(
-        envelope?.error || "ACE-Step API vrátil neplatnú odpoveď.",
+        envelope?.error || "ACE-Step API returned an invalid response.",
       );
     }
     return body as T;

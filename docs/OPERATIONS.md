@@ -1,12 +1,12 @@
-# Prevádzka a obnova
+# Operations and recovery
 
 ## GPU prerequisites
 
-Odporúčaný cieľ je Linux x86_64 s NVIDIA GPU. Nainštaluj kompatibilný NVIDIA driver, Docker Engine, Compose plugin a NVIDIA Container Toolkit. Reštartuj Docker a over `nvidia-smi` zvnútra CUDA kontajnera podľa README. Samotná existencia GPU na hoste nestačí.
+The recommended target is an x86_64 Linux server with an NVIDIA GPU. Install a compatible NVIDIA driver, Docker Engine, the Compose plugin, and NVIDIA Container Toolkit. Restart Docker and verify `nvidia-smi` from inside a CUDA container as shown in the README. A GPU visible on the host alone is not sufficient.
 
-ACE-Step uvádza aj CPU, MPS, ROCm a Intel XPU, ale oficiálny generický Dockerfile/Compose, z ktorého vychádza tento stack, je CUDA/NVIDIA cesta. Iné akcelerátory nie sú týmto Compose deklarované ako podporované.
+ACE-Step also documents CPU, MPS, ROCm, and Intel XPU support, but the official generic Dockerfile and Compose configuration used by this stack target CUDA/NVIDIA. This Compose file does not claim support for other accelerators.
 
-## Prvý deployment
+## First deployment
 
 ```bash
 git clone <repo-url> ai-music-lab
@@ -18,9 +18,19 @@ docker compose ps
 docker compose logs -f acestep worker
 ```
 
-`migrate` je jednorazová služba. Web a worker sa spustia až po úspešnej Prisma migrácii. Modely sa pri prvom štarte automaticky stiahnu do bind-mountov; sleduj disk a logy.
+`migrate` is a one-shot service. Web and worker start only after Prisma migrations succeed. Models download automatically on first startup into bind mounts; monitor disk usage and logs.
 
-## Bežné príkazy
+## Private Mac access
+
+Keep the service bound to the server and create a local SSH tunnel from the Mac:
+
+```bash
+ssh -N -L 3000:127.0.0.1:3000 <server-alias>
+```
+
+Browse to `http://localhost:3000` on the Mac. If local port 3000 is occupied, use `-L 3300:127.0.0.1:3000` and browse to port 3300.
+
+## Routine commands
 
 ```bash
 docker compose ps
@@ -30,32 +40,32 @@ docker compose down
 docker compose up -d
 ```
 
-Nepoužívaj `docker compose down -v` ako spôsob „čistenia“. Bind-mounty síce nie sú named volumes, ale taký návyk je nebezpečný pri budúcich zmenách.
+Do not use `docker compose down -v` as a routine cleanup command. Bind mounts are safe from that command today, but the habit becomes dangerous if named volumes are introduced later.
 
-## Záloha
+## Backup
 
-`scripts/backup.sh` zastaví zapisujúce app procesy, zabalí celý `data/` a prípadný `.env`, vytvorí SHA-256 a web/worker znovu spustí. Archív skopíruj mimo servera. Testuj obnovu na separátnom stroji.
+`scripts/backup.sh` stops the application writers, archives `data/` plus an optional `.env`, creates a SHA-256 file, and restarts web and worker. Copy the archive off the server and test recovery on a separate machine.
 
-Pre menšiu zálohu možno vynechať `data/huggingface` a `data/acestep/checkpoints`; weights sa znovu stiahnu. Úplná offline/rýchla obnova ich však potrebuje.
+For a smaller backup, `data/huggingface` and `data/acestep/checkpoints` may be omitted because weights can be downloaded again. A complete offline or fast recovery requires them.
 
-## Preinštalovanie servera
+## Reinstalling the server
 
-1. Vytvor backup a prenes archív aj checksum mimo servera.
-2. Nainštaluj OS, NVIDIA driver, Docker/Compose a NVIDIA Container Toolkit.
-3. Over GPU cez CUDA kontajner.
-4. Naklonuj presne ten istý Git commit/tag.
-5. Prenes archív, over `sha256sum -c ...sha256` a spusti `scripts/restore.sh`.
-6. Spusti `docker compose up -d --build`.
-7. Over `docker compose ps`, healthcheck a prehratie starého MP3.
+1. Create a backup and move the archive and checksum off the server.
+2. Install the OS, NVIDIA driver, Docker/Compose, and NVIDIA Container Toolkit.
+3. Verify GPU access through a CUDA container.
+4. Clone the exact same Git commit or tag.
+5. Transfer the archive, run `sha256sum -c ...sha256`, and execute `scripts/restore.sh`.
+6. Run `docker compose up -d --build`.
+7. Verify `docker compose ps`, health checks, and playback of an existing MP3.
 
-Restore skript staré `data/` nemaže: premenuje ich na `data.before-restore-<timestamp>`.
+The restore script does not delete existing `data/`; it renames the directory to `data.before-restore-<timestamp>`.
 
-## Upgrade ACE-Step
+## Upgrading ACE-Step
 
-1. Prečítaj upstream release notes a API zmeny.
-2. Urob backup.
-3. Zmeň `ACESTEP_IMAGE` v `.env` na konkrétny tag.
-4. `docker compose pull acestep && docker compose up -d acestep worker`.
-5. Over health, testovaciu generáciu a MP3 download.
+1. Read the upstream release notes and API changes.
+2. Create a backup.
+3. Set `ACESTEP_IMAGE` in `.env` to a specific tag.
+4. Run `docker compose pull acestep && docker compose up -d acestep worker`.
+5. Verify health, a test generation, and MP3 download.
 
-Ak sa API kontrakt zmení, vráť pôvodný tag; model cache a app dáta ostávajú v bind-mountoch.
+If the API contract changed, restore the previous tag. The model cache and application data remain in bind mounts.

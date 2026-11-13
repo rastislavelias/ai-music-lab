@@ -5,7 +5,11 @@ import { z } from "zod";
 export const dynamic = "force-dynamic";
 
 const createTrackSchema = z.object({
-  prompt: z.string().trim().min(3, "Prompt musí mať aspoň 3 znaky.").max(2000),
+  prompt: z
+    .string()
+    .trim()
+    .min(3, "Prompt must contain at least 3 characters.")
+    .max(2000),
   instrumental: z.boolean().optional().default(false),
 });
 
@@ -39,7 +43,7 @@ export async function POST(request: Request) {
   );
   if (!parsed.success) {
     return NextResponse.json(
-      { error: parsed.error.issues[0]?.message ?? "Neplatný vstup." },
+      { error: parsed.error.issues[0]?.message ?? "Invalid input." },
       { status: 400 },
     );
   }

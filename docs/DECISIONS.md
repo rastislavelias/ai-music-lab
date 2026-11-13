@@ -1,28 +1,28 @@
-# Rozhodnutia a limity
+# Decisions and limitations
 
-## Pripnutý upstream
+## Pinned upstream
 
-Compose predvolene používa `ghcr.io/ace-step/ace-step-1.5:0.1.8`, existujúci oficiálny release tag overený 13. novembra 2026. `.env` umožňuje zámerný upgrade. `latest` nie je default, pretože by po reinštalácii mohol priniesť inú verziu.
+Compose defaults to `ghcr.io/ace-step/ace-step-1.5:0.1.8`, an existing official release tag verified on 13 November 2026. `.env` permits a deliberate upgrade. `latest` is not the default because a reinstall could otherwise deploy a different version.
 
-## Inštrumentál
+## Instrumental mode
 
-ACE-Step API nemá v zdokumentovanom `/release_task` samostatný boolean `instrumental`. Oficiálna API referencia uvádza marker `[inst]`; worker preto pri zapnutej voľbe odosiela `lyrics: "[inst]"`. Pri vypnutej voľbe posiela prázdne lyrics. Generovanie vlastných lyrics nie je súčasťou MVP.
+The documented `/release_task` API has no dedicated `instrumental` boolean. The official API reference specifies the `[inst]` marker, so the worker sends `lyrics: "[inst]"` when instrumental mode is enabled and an empty lyrics value otherwise. AI lyrics generation is outside the MVP.
 
-## Perzistencia
+## Persistence
 
-Oficiálny Compose mountuje `/app/checkpoints`, Hugging Face cache, `/app/gradio_outputs` a `/app/output`. Náš Compose zachováva rovnaké kontajnerové cesty, ale používa bind-mounty pod `data/`, aby sa dali kopírovať a zálohovať spolu s SQLite a finálnymi MP3.
+The official Compose mounts `/app/checkpoints`, the Hugging Face cache, `/app/gradio_outputs`, and `/app/output`. This project preserves those container paths while using bind mounts under `data/`, allowing model data to be backed up alongside SQLite and final MP3 files.
 
-ACE-Step queue/job store je podľa upstream zdrojov v pamäti. Zdroj pravdy pre používateľský zoznam je preto naša SQLite. Po reštarte sa už odoslané `PROCESSING` úlohy znova pollujú podľa uloženého `task_id`. Nejednoznačný stav `SUBMITTING` sa po páde označí ako zlyhaný, aby worker nevytvoril tichý duplikát.
+The ACE-Step queue and job store are in memory. SQLite is therefore the source of truth for the user-facing library. Submitted `PROCESSING` jobs are polled again after a restart using their saved `task_id`. An ambiguous `SUBMITTING` job is marked failed after a crash to avoid silently creating a duplicate.
 
-## Bezpečnostná hranica MVP
+## MVP security boundary
 
-Aplikácia nemá autentifikáciu a port 3000 sa nesmie sprístupniť internetu. ACE-Step API sa na host port vôbec nepublikuje. Audio endpoint povoľuje iba názov súboru uložený v DB a kontroluje, že výsledná cesta ostáva v `TRACK_STORAGE_PATH`.
+The application has no authentication and port 3000 must not be exposed to the internet. The ACE-Step API is not published to a host port. The audio endpoint only accepts a filename stored in the database and verifies that the resolved path remains inside `TRACK_STORAGE_PATH`.
 
-## Úmyselne odložené
+## Intentionally deferred
 
-- retry/cancel a priority;
-- lyrics editor alebo AI lyrics;
-- duration/BPM/key/seed a model selector;
-- referenčné audio, repaint, cover a stems;
-- PostgreSQL/Redis/S3;
-- observability, quotas a verejná autentifikácia.
+- Retry, cancellation, and priorities.
+- Lyrics editor or AI lyrics.
+- Duration, BPM, key, seed, and model selector.
+- Reference audio, repaint, cover, and stems.
+- PostgreSQL, Redis, and S3.
+- Observability, quotas, and public authentication.

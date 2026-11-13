@@ -16,6 +16,6 @@ describe("AceStepClient result parsing", () => {
   });
 
   it("rejects results without an audio file", () => {
-    expect(() => client.parseFirstAudio("[]")).toThrow("audio súbor");
+    expect(() => client.parseFirstAudio("[]")).toThrow("audio file");
   });
 });

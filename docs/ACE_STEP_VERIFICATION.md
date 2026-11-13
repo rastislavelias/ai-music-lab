@@ -1,19 +1,19 @@
-# Overenie ACE-Step integrácie
+# ACE-Step integration verification
 
-Overené 13. novembra 2026 proti oficiálnemu repozitáru `ace-step/ACE-Step-1.5`.
+Verified on 13 November 2026 against the official `ace-step/ACE-Step-1.5` repository.
 
-## Fakty použité v implementácii
+## Facts used by the implementation
 
-- Oficiálny release `v0.1.8` publikuje image `ghcr.io/ace-step/ace-step-1.5:0.1.8`.
-- Oficiálny Compose používa `ACESTEP_MODE=api` pre REST server a port 8001.
-- Asynchrónny kontrakt je `POST /release_task`, potom `POST /query_result` s `task_id_list`; stavy sú 0/1/2.
-- `result` je JSON reťazec a pole obsahuje `file`, ktoré smeruje na `GET /v1/audio?path=...`.
-- Dokumentované textové polia zahŕňajú `prompt`, `lyrics`, `thinking`, `audio_format` a `batch_size`.
-- Inštrumentál sa reprezentuje lyrics markerom `[inst]`.
-- API server používa in-memory queue/job store a má bežať s jedným uvicorn workerom.
-- Oficiálne perzistentné mounty sú checkpoints, Hugging Face cache, gradio outputs a output.
+- Official release `v0.1.8` publishes `ghcr.io/ace-step/ace-step-1.5:0.1.8`.
+- The official Compose file uses `ACESTEP_MODE=api` for the REST server on port 8001.
+- The asynchronous contract is `POST /release_task`, followed by `POST /query_result` with `task_id_list`; status values are 0/1/2.
+- `result` is a JSON string whose array contains a `file` value pointing to `GET /v1/audio?path=...`.
+- Documented text fields include `prompt`, `lyrics`, `thinking`, `audio_format`, and `batch_size`.
+- Instrumental generation uses the `[inst]` lyrics marker.
+- The API server uses an in-memory queue/job store and must run with one uvicorn worker.
+- Official persistent mounts cover checkpoints, Hugging Face cache, Gradio outputs, and output.
 
-## Primárne zdroje
+## Primary sources
 
 - [ACE-Step 1.5 repository](https://github.com/ace-step/ACE-Step-1.5)
 - [Release v0.1.8](https://github.com/ace-step/ACE-Step-1.5/releases/tag/v0.1.8)
@@ -22,6 +22,6 @@ Overené 13. novembra 2026 proti oficiálnemu repozitáru `ace-step/ACE-Step-1.5
 - [Official REST API documentation](https://github.com/ace-step/ACE-Step-1.5/blob/main/docs/en/API.md)
 - [Official API server source](https://github.com/ace-step/ACE-Step-1.5/blob/main/acestep/api_server.py)
 
-## Čo nie je tvrdené
+## Claims deliberately not made
 
-Repo nehardcoduje čas generovania, minimálnu univerzálnu VRAM ani presnú veľkosť weights. Tieto hodnoty sa menia podľa modelu, backendu, offloadingu, dĺžky a hardvéru. Prevádzková dokumentácia preto odkazuje na aktuálnu upstream GPU tabuľku a vyhýba sa nepodloženému SLA.
+The repository does not hard-code a generation-time promise, a universal minimum VRAM figure, or an exact weight size. These vary with model, backend, offloading, duration, and hardware. The operations guide therefore links to the current upstream GPU table and avoids an unsupported SLA.

@@ -15,11 +15,11 @@ export type TrackView = {
 const activeStatuses = new Set(["QUEUED", "SUBMITTING", "PROCESSING"]);
 
 const labels: Record<string, string> = {
-  QUEUED: "Vo fronte",
-  SUBMITTING: "Odosielam",
-  PROCESSING: "Generujem",
-  COMPLETED: "Hotovo",
-  FAILED: "Zlyhalo",
+  QUEUED: "Queued",
+  SUBMITTING: "Submitting",
+  PROCESSING: "Generating",
+  COMPLETED: "Ready",
+  FAILED: "Failed",
 };
 
 export function MusicLab({ initialTracks }: { initialTracks: TrackView[] }) {
@@ -54,11 +54,11 @@ export function MusicLab({ initialTracks }: { initialTracks: TrackView[] }) {
       });
       const body = await response.json();
       if (!response.ok)
-        throw new Error(body.error ?? "Generovanie sa nepodarilo zaradiť.");
+        throw new Error(body.error ?? "Could not queue the generation job.");
       setTracks((current) => [body.track, ...current]);
       setPrompt("");
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Neznáma chyba.");
+      setError(cause instanceof Error ? cause.message : "Unknown error.");
     } finally {
       setSubmitting(false);
     }
@@ -72,12 +72,12 @@ export function MusicLab({ initialTracks }: { initialTracks: TrackView[] }) {
             <div className="eyebrow">LOCAL · ACE-STEP 1.5</div>
             <h1>AI Music Lab</h1>
             <p className="mt-3 max-w-xl text-[var(--muted)]">
-              Opíš zvuk, náladu a nástroje. Generovanie beží na tvojom GPU a
-              výsledok ostáva lokálne.
+              Describe the sound, mood, and instruments. Generation runs on your
+              GPU and the result stays on your server.
             </p>
           </div>
           <div className="hidden rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-[var(--muted)] sm:block">
-            {hasActive ? "● GPU pracuje" : "○ Pripravené"}
+            {hasActive ? "● GPU working" : "○ Ready"}
           </div>
         </header>
 
@@ -90,7 +90,7 @@ export function MusicLab({ initialTracks }: { initialTracks: TrackView[] }) {
               id="prompt"
               value={prompt}
               onChange={(event) => setPrompt(event.target.value)}
-              placeholder="Temný synthwave, pulzujúci analógový bas, filmové bicie, nočná jazda mestom…"
+              placeholder="Dark synthwave, pulsing analogue bass, cinematic drums, a night drive through the city…"
               minLength={3}
               maxLength={2000}
               required
@@ -102,37 +102,37 @@ export function MusicLab({ initialTracks }: { initialTracks: TrackView[] }) {
                   checked={instrumental}
                   onChange={(event) => setInstrumental(event.target.checked)}
                 />
-                <span>Inštrumentálna skladba</span>
+                <span>Instrumental track</span>
               </label>
               <button
                 type="submit"
                 disabled={submitting || prompt.trim().length < 3}
               >
-                {submitting ? "Zaraďujem…" : "Vygenerovať skladbu"}
+                {submitting ? "Queueing…" : "Generate track"}
               </button>
             </div>
             {error && <p className="mt-4 text-sm text-rose-300">{error}</p>}
           </form>
           <aside className="rounded-2xl border border-white/8 bg-black/15 p-5">
-            <div className="label">Tip pre lepší výsledok</div>
+            <div className="label">A better prompt</div>
             <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
-              Kombinuj žáner, tempo, náladu, nástroje a produkčný štýl.
-              Napríklad: „warm lo-fi hip-hop, 82 BPM, dusty drums, Rhodes piano,
-              vinyl texture“.
+              Combine genre, tempo, mood, instruments, and production style. For
+              example: “warm lo-fi hip-hop, 82 BPM, dusty drums, Rhodes piano,
+              vinyl texture”.
             </p>
           </aside>
         </section>
 
         <section>
           <div className="mb-4 flex items-center justify-between">
-            <h2>Tvoje skladby</h2>
+            <h2>Your tracks</h2>
             <span className="text-sm text-[var(--muted)]">
-              {tracks.length} položiek
+              {tracks.length} items
             </span>
           </div>
           {tracks.length === 0 ? (
             <div className="empty">
-              Zatiaľ tu nič nie je. Prvá skladba začína dobrým promptom.
+              Nothing here yet. Your first track starts with a good prompt.
             </div>
           ) : (
             <div className="grid gap-4">
@@ -159,7 +159,7 @@ function TrackCard({ track, index }: { track: TrackView; index: number }) {
           </span>
           {track.instrumental && <span className="chip">INSTRUMENTAL</span>}
           <time className="text-xs text-[var(--muted)]">
-            {new Intl.DateTimeFormat("sk-SK", {
+            {new Intl.DateTimeFormat("en-GB", {
               dateStyle: "medium",
               timeStyle: "short",
             }).format(new Date(track.createdAt))}
@@ -182,7 +182,7 @@ function TrackCard({ track, index }: { track: TrackView; index: number }) {
               className="download"
               href={`/api/tracks/${track.id}/audio?download=1`}
             >
-              Stiahnuť MP3
+              Download MP3
             </a>
           </div>
         )}

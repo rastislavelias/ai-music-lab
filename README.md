@@ -1,62 +1,72 @@
 # AI Music Lab MVP
 
-Lokálna webová aplikácia na asynchrónne generovanie hudby cez ACE-Step 1.5. Zadáš prompt, voliteľne označíš inštrumentál, worker odošle úlohu na GPU, výsledok uloží ako MP3 a UI ho ponúkne na prehratie alebo stiahnutie.
+A local web application for asynchronous music generation with ACE-Step 1.5. Enter a prompt, optionally select instrumental mode, and a background worker submits the job to the GPU. The finished MP3 is stored persistently and can be played or downloaded in the browser.
 
 ## MVP scope
 
-- prompt a voľba „inštrumentálna skladba“;
-- asynchrónna fronta a stav `vo fronte → generujem → hotovo/zlyhalo`;
-- ACE-Step 1.5 REST API na samostatnom GPU kontejnere;
-- perzistentná Prisma SQLite databáza a lokálne MP3;
-- zoznam posledných skladieb, browser prehrávač a download;
-- bez registrácie, autentifikácie a verejného nasadenia.
+- Prompt plus an optional instrumental flag.
+- Asynchronous queue with `queued → generating → ready/failed` states.
+- ACE-Step 1.5 REST API in a dedicated GPU container.
+- Persistent Prisma SQLite database and local MP3 storage.
+- Recent track list, browser playback, and download.
+- No registration, authentication, or public deployment.
 
-Mimo MVP sú lyrics editor/generátor, pokročilé parametre, referenčné audio, retry/cancel, viac používateľov, objektové úložisko a verejný deployment.
+The lyrics editor/generator, advanced controls, reference audio, retry/cancel, multiple users, object storage, and public deployment are intentionally outside the MVP.
 
-## Spustenie jedným príkazom
+## Start with one command
 
-Požiadavky: Linux x86_64, NVIDIA GPU a ovládač, Docker Engine + Compose plugin a NVIDIA Container Toolkit. Over GPU v Dockeri:
+Requirements: an x86_64 Linux server, NVIDIA GPU and driver, Docker Engine with the Compose plugin, and NVIDIA Container Toolkit. Verify GPU access from Docker:
 
 ```bash
 docker run --rm --gpus all nvidia/cuda:12.8.1-runtime-ubuntu22.04 nvidia-smi
 ```
 
-Potom:
+Then run:
 
 ```bash
 cp .env.example .env
 docker compose up -d --build
 ```
 
-Otvor `http://localhost:3000`. Prvý štart sťahuje model weights a môže trvať výrazne dlhšie než ďalšie štarty. Rýchlosť generovania závisí od GPU, VRAM, dĺžky a zvoleného modelu; repo preto nesľubuje univerzálny čas.
+Open `http://localhost:3000`. The first start downloads model weights and can take substantially longer than later starts. Generation speed depends on the GPU, VRAM, track length, and selected model; this repository does not claim a universal generation time.
 
-Pre GPU so 6–8 GB VRAM nastav v `.env` `ACESTEP_LM_MODEL_PATH=acestep-5Hz-lm-0.6B`. Oficiálny 4B default je vhodný pre podstatne väčšiu VRAM. Presná tabuľka výberu je v [oficiálnom README ACE-Step](https://github.com/ace-step/ACE-Step-1.5#-quick-start).
+For a GPU with 6–8 GB VRAM, set `ACESTEP_LM_MODEL_PATH=acestep-5Hz-lm-0.6B` in `.env`. The official 4B default requires substantially more VRAM. See the current selection table in the [official ACE-Step README](https://github.com/ace-step/ACE-Step-1.5#-quick-start).
 
-## Dáta a reinštalácia
+## Server-only deployment and Mac access
 
-Všetko potrebné na obnovu je pod `data/`:
+The application, database, MP3 files, model weights, and containers belong on the Linux GPU server. Access it from a Mac through an SSH local port forward:
 
-- `data/app/app.db` — Prisma SQLite;
-- `data/tracks/` — MP3 knižnica aplikácie;
-- `data/acestep/checkpoints/` a `data/huggingface/` — model weights/cache;
-- `data/acestep/output/` a `gradio_outputs/` — upstream výstupy.
+```bash
+ssh -N -L 3000:127.0.0.1:3000 <server-alias>
+```
 
-Záloha (na chvíľu zastaví web a worker kvôli konzistentnej SQLite snímke):
+Then open `http://localhost:3000` on the Mac. Port 3000 does not need to be exposed to the LAN or internet.
+
+## Data and server reinstall
+
+Everything required for recovery lives under `data/` on the server:
+
+- `data/app/app.db` — Prisma SQLite database.
+- `data/tracks/` — application MP3 library.
+- `data/acestep/checkpoints/` and `data/huggingface/` — model weights and cache.
+- `data/acestep/output/` and `gradio_outputs/` — upstream output directories.
+
+Create a backup (the script briefly stops web and worker processes for a consistent SQLite snapshot):
 
 ```bash
 ./scripts/backup.sh
 ```
 
-Na novom serveri nainštaluj GPU prerequisites, naklonuj repo, prenes archív a spusti:
+On a reinstalled server, install the GPU prerequisites, clone the repository, transfer the archive, and run:
 
 ```bash
 ./scripts/restore.sh /absolute/path/to/backup.tar.gz
 docker compose up -d --build
 ```
 
-Podrobný runbook je v [docs/OPERATIONS.md](docs/OPERATIONS.md).
+See [docs/OPERATIONS.md](docs/OPERATIONS.md) for the full runbook.
 
-## Vývoj
+## Development
 
 ```bash
 corepack enable
@@ -68,13 +78,13 @@ pnpm prisma:migrate
 pnpm dev
 ```
 
-Lokálny worker očakáva ACE-Step na `http://localhost:8001`; jednoduchšia cesta je používať celý Compose stack.
+The local worker expects ACE-Step at `http://localhost:8001`; using the full Compose stack is normally simpler.
 
-## Dokumentácia
+## Documentation
 
-- [Architektúra](docs/ARCHITECTURE.md)
-- [Rozhodnutia a limity](docs/DECISIONS.md)
-- [Prevádzka, backup a obnova](docs/OPERATIONS.md)
-- [Overené ACE-Step zdroje](docs/ACE_STEP_VERIFICATION.md)
+- [Architecture](docs/ARCHITECTURE.md)
+- [Decisions and limitations](docs/DECISIONS.md)
+- [Operations, backup, and recovery](docs/OPERATIONS.md)
+- [Verified ACE-Step sources](docs/ACE_STEP_VERIFICATION.md)
 
-Pred komerčným použitím skontroluj licencie kódu a konkrétnych model weights a právny status generovaného obsahu.
+Before commercial use, review the code and model-weight licences and the legal status of generated material.

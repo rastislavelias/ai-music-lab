@@ -18,16 +18,13 @@ export async function GET(
 
   if (!track?.fileName)
     return NextResponse.json(
-      { error: "Audio ešte nie je dostupné." },
+      { error: "Audio is not available yet." },
       { status: 404 },
     );
 
   const filePath = path.resolve(storageRoot, track.fileName);
   if (!filePath.startsWith(`${storageRoot}${path.sep}`)) {
-    return NextResponse.json(
-      { error: "Neplatná cesta k súboru." },
-      { status: 400 },
-    );
+    return NextResponse.json({ error: "Invalid file path." }, { status: 400 });
   }
 
   try {
@@ -48,7 +45,7 @@ export async function GET(
     });
   } catch {
     return NextResponse.json(
-      { error: "Audio súbor sa nenašiel." },
+      { error: "Audio file was not found." },
       { status: 404 },
     );
   }
