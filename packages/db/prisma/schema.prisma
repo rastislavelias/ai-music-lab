@@ -8,19 +8,47 @@ datasource db {
 }
 
 model Track {
-  id             String   @id @default(cuid())
-  prompt         String
-  lyrics         String   @default("")
-  instrumental   Boolean  @default(false)
-  status         String   @default("QUEUED")
-  upstreamTaskId String?  @unique
-  fileName       String?
-  mimeType       String?
-  error          String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  submittedAt    DateTime?
-  completedAt    DateTime?
+  id                   String          @id @default(cuid())
+  prompt               String
+  lyrics               String          @default("")
+  instrumental         Boolean         @default(false)
+  profileId            String?
+  basePrompt           String          @default("")
+  referenceTrackId     String?
+  vocalLanguage        String          @default("en")
+  bpm                  Int?
+  seed                 Int?
+  generationGroupId    String?
+  status               String          @default("QUEUED")
+  upstreamTaskId       String?         @unique
+  fileName             String?
+  mimeType             String?
+  masterFileName       String?
+  masterMimeType       String?
+  error                String?
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
+  submittedAt          DateTime?
+  completedAt          DateTime?
+  profile              ArtistProfile?  @relation("ProfileTracks", fields: [profileId], references: [id], onDelete: SetNull)
+  referenceForProfiles ArtistProfile[] @relation("ProfileReference")
 
   @@index([status, createdAt])
+  @@index([profileId, createdAt])
+  @@index([generationGroupId])
+}
+
+model ArtistProfile {
+  id               String   @id @default(cuid())
+  name             String
+  basePrompt       String   @default("")
+  vocalLanguage    String   @default("en")
+  bpm              Int?
+  referenceTrackId String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  referenceTrack   Track?   @relation("ProfileReference", fields: [referenceTrackId], references: [id], onDelete: SetNull)
+  tracks           Track[]  @relation("ProfileTracks")
+
+  @@index([createdAt])
 }

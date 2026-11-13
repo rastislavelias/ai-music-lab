@@ -43,14 +43,18 @@ export async function GET(
 ) {
   const { id } = await context.params;
   const track = await prisma.track.findUnique({ where: { id } });
+  const url = new URL(request.url);
+  const master = url.searchParams.get("master") === "1";
+  const fileName = master ? track?.masterFileName : track?.fileName;
+  const mimeType = master ? track?.masterMimeType : track?.mimeType;
 
-  if (!track?.fileName)
+  if (!track || !fileName)
     return NextResponse.json(
       { error: "Audio is not available yet." },
       { status: 404 },
     );
 
-  const filePath = path.resolve(storageRoot, track.fileName);
+  const filePath = path.resolve(storageRoot, fileName);
   if (!filePath.startsWith(`${storageRoot}${path.sep}`)) {
     return NextResponse.json({ error: "Invalid file path." }, { status: 400 });
   }
@@ -71,20 +75,20 @@ export async function GET(
     const stream = Readable.toWeb(
       createReadStream(filePath, { start, end }),
     ) as ReadableStream;
-    const download = new URL(request.url).searchParams.get("download") === "1";
+    const download = url.searchParams.get("download") === "1";
     return new Response(stream, {
       status: range ? 206 : 200,
       headers: {
         "Accept-Ranges": "bytes",
         "Cache-Control": "private, max-age=3600",
         "Content-Length": String(end - start + 1),
-        "Content-Type": track.mimeType ?? "audio/mpeg",
+        "Content-Type": mimeType ?? (master ? "audio/flac" : "audio/mpeg"),
         ...(range
           ? { "Content-Range": `bytes ${start}-${end}/${info.size}` }
           : {}),
         ...(download
           ? {
-              "Content-Disposition": `attachment; filename="${track.fileName.replaceAll('"', "")}"`,
+              "Content-Disposition": `attachment; filename="${fileName.replaceAll('"', "")}"`,
             }
           : {}),
       },

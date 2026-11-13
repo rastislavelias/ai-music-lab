@@ -1,17 +1,19 @@
 # AI Music Lab MVP
 
-A local web application for asynchronous music generation with ACE-Step 1.5. Enter a production prompt and lyrics, or select instrumental mode, and a background worker submits the job to the GPU. The finished MP3 is stored persistently and can be played, seeked, or downloaded in the browser.
+A local web application for asynchronous music generation with ACE-Step 1.5. Artist profiles preserve a core sound, BPM, language, and a generated style-reference track. Each new generation keeps a lossless FLAC master and a seekable MP3 browser preview.
 
 ## MVP scope
 
 - Production prompt plus user-provided lyrics, or an instrumental flag.
+- Artist profiles with reusable core sound, BPM, language, and style reference.
+- One, two, or four independently seeded variants per request.
 - Asynchronous queue with `queued → generating → ready/failed` states.
 - ACE-Step 1.5 REST API in a dedicated GPU container.
-- Persistent Prisma SQLite database and local MP3 storage.
-- Recent track list, seekable browser playback, and download.
+- Persistent Prisma SQLite database, lossless FLAC masters, and MP3 previews.
+- Recent track list, seekable browser playback, FLAC/MP3 download, and “Use as style reference”.
 - No registration, authentication, or public deployment.
 
-AI lyrics generation, advanced controls, reference audio, retry/cancel, multiple users, object storage, and public deployment are intentionally outside the MVP.
+AI lyrics generation, source-audio cover/repaint, retry/cancel, multiple users, object storage, and public deployment are intentionally outside the MVP.
 
 ## Start with one command
 
@@ -34,7 +36,7 @@ For a GPU with 6–8 GB VRAM, set `ACESTEP_LM_MODEL_PATH=acestep-5Hz-lm-0.6B` in
 
 ## Server-only deployment and Mac access
 
-The application, database, MP3 files, model weights, and containers belong on the Linux GPU server. Access it from a Mac through an SSH local port forward:
+The application, database, FLAC/MP3 files, model weights, and containers belong on the Linux GPU server. Access it from a Mac through an SSH local port forward:
 
 ```bash
 ssh -N -L 3000:127.0.0.1:3000 <server-alias>
@@ -47,7 +49,7 @@ Then open `http://localhost:3000` on the Mac. Port 3000 does not need to be expo
 Everything required for recovery lives under `data/` on the server:
 
 - `data/app/app.db` — Prisma SQLite database.
-- `data/tracks/` — application MP3 library.
+- `data/tracks/` — lossless FLAC masters, MP3 previews, and files exposed read-only to ACE-Step as style references.
 - `data/acestep/checkpoints/` and `data/huggingface/` — model weights and cache.
 - `data/acestep/output/` and `gradio_outputs/` — upstream output directories.
 

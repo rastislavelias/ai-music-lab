@@ -18,13 +18,25 @@ describe("AceStepClient submission", () => {
     const client = new AceStepClient("http://acestep:8001");
 
     await expect(
-      client.submit("warm deep house", "[Verse]\nRise slowly", false),
+      client.submit({
+        prompt: "warm deep house",
+        lyrics: "[Verse]\nRise slowly",
+        instrumental: false,
+        seed: 1234,
+        bpm: 124,
+        vocalLanguage: "en",
+        referenceAudioPath: "/references/style.flac",
+      }),
     ).resolves.toBe("task-1");
 
     const request = fetchMock.mock.calls[0]?.[1];
     expect(JSON.parse(String(request?.body))).toMatchObject({
       prompt: "warm deep house",
       lyrics: "[Verse]\nRise slowly",
+      audio_format: "flac",
+      seed: 1234,
+      use_random_seed: false,
+      reference_audio_path: "/references/style.flac",
     });
   });
 
@@ -41,7 +53,13 @@ describe("AceStepClient submission", () => {
     );
     const client = new AceStepClient("http://acestep:8001");
 
-    await client.submit("warm deep house", "ignored words", true);
+    await client.submit({
+      prompt: "warm deep house",
+      lyrics: "ignored words",
+      instrumental: true,
+      seed: 4321,
+      vocalLanguage: "en",
+    });
 
     const request = fetchMock.mock.calls[0]?.[1];
     expect(JSON.parse(String(request?.body)).lyrics).toBe("[inst]");

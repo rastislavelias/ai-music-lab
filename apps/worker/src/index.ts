@@ -2,6 +2,8 @@ import { prisma, type Track } from "@ai-music-lab/db";
 import { createWriteStream } from "node:fs";
 import { mkdir, rename, rm } from "node:fs/promises";
 import path from "node:path";
+import { promisify } from "node:util";
+import { execFile } from "node:child_process";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { AceStepClient } from "./ace-step";
@@ -11,6 +13,7 @@ const taskTimeoutMs = Number(process.env.WORKER_TASK_TIMEOUT_MS ?? 3_600_000);
 const storageRoot = path.resolve(
   process.env.TRACK_STORAGE_PATH ?? "/data/tracks",
 );
+const execFileAsync = promisify(execFile);
 const ace = new AceStepClient(
   process.env.ACESTEP_API_URL ?? "http://acestep:8001",
   process.env.ACESTEP_API_KEY || undefined,
@@ -47,11 +50,26 @@ async function claim(): Promise<Track | null> {
 
 async function submit(track: Track) {
   try {
-    const taskId = await ace.submit(
-      track.prompt,
-      track.lyrics,
-      track.instrumental,
-    );
+    const referenceTrack = track.referenceTrackId
+      ? await prisma.track.findUnique({
+          where: { id: track.referenceTrackId },
+          select: { masterFileName: true, fileName: true },
+        })
+      : null;
+    const referenceFileName =
+      referenceTrack?.masterFileName ?? referenceTrack?.fileName;
+    const referenceAudioPath = referenceFileName
+      ? `/references/${path.basename(referenceFileName)}`
+      : undefined;
+    const taskId = await ace.submit({
+      prompt: [track.basePrompt, track.prompt].filter(Boolean).join(", "),
+      lyrics: track.lyrics,
+      instrumental: track.instrumental,
+      seed: track.seed ?? 1,
+      bpm: track.bpm,
+      vocalLanguage: track.vocalLanguage,
+      referenceAudioPath,
+    });
     await prisma.track.update({
       where: { id: track.id },
       data: {
@@ -72,18 +90,42 @@ async function submit(track: Track) {
 async function finish(track: Track, result: string | undefined) {
   const audio = ace.parseFirstAudio(result);
   const response = await ace.download(audio.file);
+  const masterFileName = `${track.id}.flac`;
   const fileName = `${track.id}.mp3`;
-  const finalPath = path.join(storageRoot, fileName);
-  const temporaryPath = `${finalPath}.part`;
+  const masterPath = path.join(storageRoot, masterFileName);
+  const previewPath = path.join(storageRoot, fileName);
+  const temporaryMasterPath = `${masterPath}.part`;
+  const temporaryPreviewPath = `${previewPath}.part`;
   await mkdir(storageRoot, { recursive: true });
   try {
     await pipeline(
       Readable.fromWeb(response.body as never),
-      createWriteStream(temporaryPath, { flags: "wx" }),
+      createWriteStream(temporaryMasterPath, { flags: "wx" }),
     );
-    await rename(temporaryPath, finalPath);
+    await rename(temporaryMasterPath, masterPath);
+    await execFileAsync("ffmpeg", [
+      "-hide_banner",
+      "-loglevel",
+      "error",
+      "-y",
+      "-i",
+      masterPath,
+      "-codec:a",
+      "libmp3lame",
+      "-b:a",
+      "192k",
+      "-f",
+      "mp3",
+      temporaryPreviewPath,
+    ]);
+    await rename(temporaryPreviewPath, previewPath);
   } catch (error) {
-    await rm(temporaryPath, { force: true });
+    await Promise.all([
+      rm(temporaryMasterPath, { force: true }),
+      rm(temporaryPreviewPath, { force: true }),
+      rm(masterPath, { force: true }),
+      rm(previewPath, { force: true }),
+    ]);
     throw error;
   }
   await prisma.track.update({
@@ -91,7 +133,9 @@ async function finish(track: Track, result: string | undefined) {
     data: {
       status: "COMPLETED",
       fileName,
-      mimeType: response.headers.get("content-type") ?? "audio/mpeg",
+      mimeType: "audio/mpeg",
+      masterFileName,
+      masterMimeType: response.headers.get("content-type") ?? "audio/flac",
       completedAt: new Date(),
       error: null,
     },

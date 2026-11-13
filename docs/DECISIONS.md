@@ -10,7 +10,7 @@ The documented `/release_task` API has no dedicated `instrumental` boolean. The 
 
 ## Persistence
 
-The official Compose mounts `/app/checkpoints`, the Hugging Face cache, `/app/gradio_outputs`, and `/app/output`. This project preserves those container paths while using bind mounts under `data/`, allowing model data to be backed up alongside SQLite and final MP3 files.
+The official Compose mounts `/app/checkpoints`, the Hugging Face cache, `/app/gradio_outputs`, and `/app/output`. This project preserves those container paths while using bind mounts under `data/`, allowing model data to be backed up alongside SQLite, FLAC masters, and MP3 previews. The track library is mounted read-only at `/references` inside ACE-Step.
 
 The ACE-Step queue and job store are in memory. SQLite is therefore the source of truth for the user-facing library. Submitted `PROCESSING` jobs are polled again after a restart using their saved `task_id`. An ambiguous `SUBMITTING` job is marked failed after a crash to avoid silently creating a duplicate.
 
@@ -24,7 +24,7 @@ The application has no authentication and port 3000 must not be exposed to the i
 
 - Retry, cancellation, and priorities.
 - AI lyrics generation.
-- Duration, BPM, key, seed, and model selector.
-- Reference audio, repaint, cover, and stems.
+- Duration, key, manual seed, and model selector.
+- Uploaded reference audio, source-audio cover, repaint, and stems.
 - PostgreSQL, Redis, and S3.
 - Observability, quotas, and public authentication.

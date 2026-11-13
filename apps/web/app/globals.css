@@ -84,6 +84,31 @@ textarea::placeholder {
 .lyrics-input {
   min-height: 220px;
 }
+.compact-textarea {
+  min-height: 110px;
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+}
+.field {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid var(--line);
+  border-radius: 0.8rem;
+  background: rgba(0, 0, 0, 0.22);
+  color: white;
+  padding: 0.7rem 0.8rem;
+  font: inherit;
+  outline: none;
+}
+.field:focus {
+  border-color: rgba(200, 255, 85, 0.7);
+  box-shadow: 0 0 0 3px rgba(200, 255, 85, 0.08);
+}
+.field-label {
+  color: #b8b9bd;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
 button {
   border: 0;
   border-radius: 999px;
@@ -102,6 +127,20 @@ button:hover:not(:disabled) {
 button:disabled {
   opacity: 0.45;
   cursor: not-allowed;
+}
+button.secondary {
+  border: 1px solid var(--line);
+  border-radius: 0.8rem;
+  background: rgba(255, 255, 255, 0.06);
+  color: white;
+  padding: 0.7rem 0.9rem;
+}
+button.text-button {
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  padding: 0.3rem 0;
+  font-size: 0.8rem;
 }
 .toggle-row {
   display: flex;
@@ -143,6 +182,14 @@ button:disabled {
   font-size: 0.62rem;
   letter-spacing: 0.08em;
   font-weight: 800;
+}
+.reference-chip {
+  border-color: rgba(200, 255, 85, 0.35);
+  color: var(--accent);
+}
+.seed {
+  color: #707279;
+  font: 600 0.68rem/1 monospace;
 }
 .status {
   background: rgba(255, 255, 255, 0.08);

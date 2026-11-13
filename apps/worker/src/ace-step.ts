@@ -16,6 +16,16 @@ type QueryItem = {
   error?: string;
 };
 
+export type AceSubmitInput = {
+  prompt: string;
+  lyrics: string;
+  instrumental: boolean;
+  seed: number;
+  bpm?: number | null;
+  vocalLanguage: string;
+  referenceAudioPath?: string;
+};
+
 export class AceStepClient {
   constructor(
     private readonly baseUrl: string,
@@ -28,22 +38,23 @@ export class AceStepClient {
     });
   }
 
-  async submit(
-    prompt: string,
-    lyrics: string,
-    instrumental: boolean,
-  ): Promise<string> {
+  async submit(input: AceSubmitInput): Promise<string> {
     const response = await this.request<ApiEnvelope<{ task_id: string }>>(
       "/release_task",
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          prompt,
-          lyrics: instrumental ? "[inst]" : lyrics,
+          prompt: input.prompt,
+          lyrics: input.instrumental ? "[inst]" : input.lyrics,
           thinking: true,
-          audio_format: "mp3",
+          audio_format: "flac",
           batch_size: 1,
+          use_random_seed: false,
+          seed: input.seed,
+          bpm: input.bpm ?? null,
+          vocal_language: input.vocalLanguage,
+          reference_audio_path: input.referenceAudioPath ?? null,
         }),
       },
     );
