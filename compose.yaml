@@ -1,0 +1,96 @@
+name: ai-music-lab
+
+x-app: &app
+  build:
+    context: .
+    dockerfile: Dockerfile
+  image: ai-music-lab-app:local
+  environment:
+    DATABASE_URL: file:/data/app/app.db
+    TRACK_STORAGE_PATH: /data/tracks
+  volumes:
+    - ./data/app:/data/app
+    - ./data/tracks:/data/tracks
+  restart: unless-stopped
+
+services:
+  migrate:
+    <<: *app
+    command: ["pnpm", "--filter", "@ai-music-lab/db", "prisma:migrate"]
+    restart: "no"
+
+  web:
+    <<: *app
+    command: ["pnpm", "--filter", "@ai-music-lab/web", "start"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    ports:
+      - "${WEB_PORT:-3000}:3000"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+
+  worker:
+    <<: *app
+    command: ["pnpm", "--filter", "@ai-music-lab/worker", "start"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      acestep:
+        condition: service_started
+    environment:
+      DATABASE_URL: file:/data/app/app.db
+      TRACK_STORAGE_PATH: /data/tracks
+      ACESTEP_API_URL: http://acestep:8001
+      ACESTEP_API_KEY: ${ACESTEP_API_KEY:-}
+      WORKER_POLL_MS: ${WORKER_POLL_MS:-5000}
+      WORKER_TASK_TIMEOUT_MS: ${WORKER_TASK_TIMEOUT_MS:-3600000}
+
+  acestep:
+    image: ${ACESTEP_IMAGE:-ghcr.io/ace-step/ace-step-1.5:0.1.8}
+    environment:
+      NVIDIA_VISIBLE_DEVICES: all
+      ACESTEP_MODE: api
+      ACESTEP_API_HOST: 0.0.0.0
+      ACESTEP_API_PORT: 8001
+      ACESTEP_API_KEY: ${ACESTEP_API_KEY:-}
+      ACESTEP_INIT_SERVICE: "true"
+      ACESTEP_CONFIG_PATH: ${ACESTEP_CONFIG_PATH:-acestep-v15-turbo}
+      ACESTEP_LM_MODEL_PATH: ${ACESTEP_LM_MODEL_PATH:-acestep-5Hz-lm-4B}
+      ACESTEP_LLM_BACKEND: ${ACESTEP_LLM_BACKEND:-pt}
+      ACESTEP_EXTRA_ARGS: ${ACESTEP_EXTRA_ARGS:-}
+      TOKENIZERS_PARALLELISM: "false"
+      HF_HOME: /root/.cache/huggingface
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    volumes:
+      - ./data/acestep/checkpoints:/app/checkpoints
+      - ./data/huggingface:/root/.cache/huggingface
+      - ./data/acestep/gradio_outputs:/app/gradio_outputs
+      - ./data/acestep/output:/app/output
+    shm_size: 2gb
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -sf http://127.0.0.1:8001/health >/dev/null || exit 1",
+        ]
+      interval: 30s
+      timeout: 10s
+      start_period: 30m
+      retries: 5

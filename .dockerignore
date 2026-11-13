@@ -1,0 +1,8 @@
+.git
+.next
+node_modules
+data
+backups
+work
+outputs
+*.log
