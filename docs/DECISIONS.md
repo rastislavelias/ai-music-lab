@@ -18,6 +18,8 @@ The ACE-Step queue and job store are in memory. SQLite is therefore the source o
 
 The application has no authentication and port 3000 must not be exposed to the internet. The ACE-Step API is not published to a host port. The audio endpoint only accepts a filename stored in the database and verifies that the resolved path remains inside `TRACK_STORAGE_PATH`.
 
+`ACESTEP_API_KEY` is deliberately absent rather than present with an empty value. The pinned official image treats an empty value as authentication enabled, which makes local worker requests fail with HTTP 401.
+
 ## Intentionally deferred
 
 - Retry, cancellation, and priorities.

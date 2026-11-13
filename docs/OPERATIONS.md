@@ -18,17 +18,17 @@ docker compose ps
 docker compose logs -f acestep worker
 ```
 
-`migrate` is a one-shot service. Web and worker start only after Prisma migrations succeed. Models download automatically on first startup into bind mounts; monitor disk usage and logs.
+`migrate` is a one-shot service. Web and worker start only after Prisma migrations succeed. ACE-Step downloads models lazily when the first generation is submitted and stores them in bind mounts; monitor disk usage and logs.
 
 ## Private Mac access
 
 Keep the service bound to the server and create a local SSH tunnel from the Mac:
 
 ```bash
-ssh -N -L 3000:127.0.0.1:3000 <server-alias>
+ssh -N -L 3300:127.0.0.1:3300 ai-node
 ```
 
-Browse to `http://localhost:3000` on the Mac. If local port 3000 is occupied, use `-L 3300:127.0.0.1:3000` and browse to port 3300.
+This command matches a server configured with `WEB_PORT=3300`. Browse to `http://127.0.0.1:3300` on the Mac. For a different `WEB_PORT`, use that same port on both sides of the tunnel. Keep the SSH session open while using the application.
 
 ## Routine commands
 

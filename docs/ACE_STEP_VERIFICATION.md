@@ -12,6 +12,7 @@ Verified on 13 November 2026 against the official `ace-step/ACE-Step-1.5` reposi
 - Instrumental generation uses the `[inst]` lyrics marker.
 - The API server uses an in-memory queue/job store and must run with one uvicorn worker.
 - Official persistent mounts cover checkpoints, Hugging Face cache, Gradio outputs, and output.
+- In release `v0.1.8`, defining `ACESTEP_API_KEY` as an empty environment variable still enables the authentication dependency and causes unauthenticated requests to return HTTP 401. The local-only Compose stack therefore omits the variable entirely; setting a real key later requires adding it consistently to both ACE-Step and the worker.
 
 ## Primary sources
 
