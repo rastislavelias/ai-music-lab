@@ -6,7 +6,7 @@ Compose defaults to `ghcr.io/ace-step/ace-step-1.5:0.1.8`, an existing official 
 
 ## Instrumental mode
 
-The documented `/release_task` API has no dedicated `instrumental` boolean. The official API reference specifies the `[inst]` marker, so the worker sends `lyrics: "[inst]"` when instrumental mode is enabled and an empty lyrics value otherwise. AI lyrics generation is outside the MVP.
+The documented `/release_task` API has no dedicated `instrumental` boolean. The official API reference specifies the `[inst]` marker, so the worker sends `lyrics: "[inst]"` when instrumental mode is enabled and sends the user's lyrics for a vocal track. AI lyrics generation is outside the MVP.
 
 ## Persistence
 
@@ -23,7 +23,7 @@ The application has no authentication and port 3000 must not be exposed to the i
 ## Intentionally deferred
 
 - Retry, cancellation, and priorities.
-- Lyrics editor or AI lyrics.
+- AI lyrics generation.
 - Duration, BPM, key, seed, and model selector.
 - Reference audio, repaint, cover, and stems.
 - PostgreSQL, Redis, and S3.

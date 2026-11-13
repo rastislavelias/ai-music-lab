@@ -5,6 +5,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 export type TrackView = {
   id: string;
   prompt: string;
+  lyrics: string;
   instrumental: boolean;
   status: string;
   error: string | null;
@@ -25,7 +26,8 @@ const labels: Record<string, string> = {
 export function MusicLab({ initialTracks }: { initialTracks: TrackView[] }) {
   const [tracks, setTracks] = useState(initialTracks);
   const [prompt, setPrompt] = useState("");
-  const [instrumental, setInstrumental] = useState(true);
+  const [lyrics, setLyrics] = useState("");
+  const [instrumental, setInstrumental] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const hasActive = useMemo(
@@ -50,13 +52,14 @@ export function MusicLab({ initialTracks }: { initialTracks: TrackView[] }) {
       const response = await fetch("/api/tracks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt, instrumental }),
+        body: JSON.stringify({ prompt, lyrics, instrumental }),
       });
       const body = await response.json();
       if (!response.ok)
         throw new Error(body.error ?? "Could not queue the generation job.");
       setTracks((current) => [body.track, ...current]);
       setPrompt("");
+      setLyrics("");
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Unknown error.");
     } finally {
@@ -95,6 +98,30 @@ export function MusicLab({ initialTracks }: { initialTracks: TrackView[] }) {
               maxLength={2000}
               required
             />
+            {!instrumental && (
+              <div className="mt-5">
+                <label htmlFor="lyrics" className="label">
+                  Lyrics
+                </label>
+                <textarea
+                  id="lyrics"
+                  className="lyrics-input"
+                  value={lyrics}
+                  onChange={(event) => setLyrics(event.target.value)}
+                  placeholder={
+                    "[Verse]\nWrite the words the singer should perform…\n\n[Chorus]\nAdd a memorable chorus…"
+                  }
+                  minLength={3}
+                  maxLength={10000}
+                  required
+                />
+                <p className="mt-2 text-xs leading-5 text-[var(--muted)]">
+                  Use section tags such as [Verse], [Chorus], and [Bridge].
+                  ACE-Step sings these words; it does not generate lyrics in
+                  this MVP.
+                </p>
+              </div>
+            )}
             <div className="mt-4 flex flex-wrap items-center justify-between gap-4">
               <label className="toggle-row">
                 <input
@@ -106,7 +133,11 @@ export function MusicLab({ initialTracks }: { initialTracks: TrackView[] }) {
               </label>
               <button
                 type="submit"
-                disabled={submitting || prompt.trim().length < 3}
+                disabled={
+                  submitting ||
+                  prompt.trim().length < 3 ||
+                  (!instrumental && lyrics.trim().length < 3)
+                }
               >
                 {submitting ? "Queueing…" : "Generate track"}
               </button>
@@ -157,7 +188,9 @@ function TrackCard({ track, index }: { track: TrackView; index: number }) {
           <span className={`status status-${track.status.toLowerCase()}`}>
             {labels[track.status] ?? track.status}
           </span>
-          {track.instrumental && <span className="chip">INSTRUMENTAL</span>}
+          <span className="chip">
+            {track.instrumental ? "INSTRUMENTAL" : "VOCALS"}
+          </span>
           <time className="text-xs text-[var(--muted)]">
             {new Intl.DateTimeFormat("en-GB", {
               dateStyle: "medium",

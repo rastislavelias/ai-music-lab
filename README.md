@@ -1,17 +1,17 @@
 # AI Music Lab MVP
 
-A local web application for asynchronous music generation with ACE-Step 1.5. Enter a prompt, optionally select instrumental mode, and a background worker submits the job to the GPU. The finished MP3 is stored persistently and can be played or downloaded in the browser.
+A local web application for asynchronous music generation with ACE-Step 1.5. Enter a production prompt and lyrics, or select instrumental mode, and a background worker submits the job to the GPU. The finished MP3 is stored persistently and can be played, seeked, or downloaded in the browser.
 
 ## MVP scope
 
-- Prompt plus an optional instrumental flag.
+- Production prompt plus user-provided lyrics, or an instrumental flag.
 - Asynchronous queue with `queued → generating → ready/failed` states.
 - ACE-Step 1.5 REST API in a dedicated GPU container.
 - Persistent Prisma SQLite database and local MP3 storage.
-- Recent track list, browser playback, and download.
+- Recent track list, seekable browser playback, and download.
 - No registration, authentication, or public deployment.
 
-The lyrics editor/generator, advanced controls, reference audio, retry/cancel, multiple users, object storage, and public deployment are intentionally outside the MVP.
+AI lyrics generation, advanced controls, reference audio, retry/cancel, multiple users, object storage, and public deployment are intentionally outside the MVP.
 
 ## Start with one command
 

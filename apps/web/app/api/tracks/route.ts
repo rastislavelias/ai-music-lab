@@ -4,18 +4,30 @@ import { z } from "zod";
 
 export const dynamic = "force-dynamic";
 
-const createTrackSchema = z.object({
-  prompt: z
-    .string()
-    .trim()
-    .min(3, "Prompt must contain at least 3 characters.")
-    .max(2000),
-  instrumental: z.boolean().optional().default(false),
-});
+const createTrackSchema = z
+  .object({
+    prompt: z
+      .string()
+      .trim()
+      .min(3, "Prompt must contain at least 3 characters.")
+      .max(2000),
+    instrumental: z.boolean().optional().default(false),
+    lyrics: z.string().trim().max(10000).optional().default(""),
+  })
+  .superRefine((track, context) => {
+    if (!track.instrumental && track.lyrics.length < 3) {
+      context.addIssue({
+        code: "custom",
+        path: ["lyrics"],
+        message: "Lyrics must contain at least 3 characters for a vocal track.",
+      });
+    }
+  });
 
 function toView(track: {
   id: string;
   prompt: string;
+  lyrics: string;
   instrumental: boolean;
   status: string;
   error: string | null;

@@ -11,6 +11,7 @@ export default async function Home() {
   const initialTracks: TrackView[] = tracks.map((track) => ({
     id: track.id,
     prompt: track.prompt,
+    lyrics: track.lyrics,
     instrumental: track.instrumental,
     status: track.status,
     error: track.error,

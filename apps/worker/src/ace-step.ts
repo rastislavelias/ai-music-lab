@@ -28,7 +28,11 @@ export class AceStepClient {
     });
   }
 
-  async submit(prompt: string, instrumental: boolean): Promise<string> {
+  async submit(
+    prompt: string,
+    lyrics: string,
+    instrumental: boolean,
+  ): Promise<string> {
     const response = await this.request<ApiEnvelope<{ task_id: string }>>(
       "/release_task",
       {
@@ -36,7 +40,7 @@ export class AceStepClient {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           prompt,
-          lyrics: instrumental ? "[inst]" : "",
+          lyrics: instrumental ? "[inst]" : lyrics,
           thinking: true,
           audio_format: "mp3",
           batch_size: 1,

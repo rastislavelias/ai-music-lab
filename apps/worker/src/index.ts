@@ -47,7 +47,11 @@ async function claim(): Promise<Track | null> {
 
 async function submit(track: Track) {
   try {
-    const taskId = await ace.submit(track.prompt, track.instrumental);
+    const taskId = await ace.submit(
+      track.prompt,
+      track.lyrics,
+      track.instrumental,
+    );
     await prisma.track.update({
       where: { id: track.id },
       data: {

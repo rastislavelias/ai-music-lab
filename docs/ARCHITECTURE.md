@@ -6,7 +6,8 @@
 2. The worker atomically changes it to `SUBMITTING` and calls the official `POST /release_task` endpoint.
 3. It saves the returned `task_id`, changes the status to `PROCESSING`, and periodically calls `POST /query_result`.
 4. When ACE-Step reports status `1`, the worker parses the JSON string in `result`, follows the returned `/v1/audio?path=...` URL, and copies the MP3 into `data/tracks`.
-5. Only after atomically renaming the `.part` file does it set `COMPLETED`. The UI polls its own API and displays the player.
+5. The audio route supports HTTP byte ranges so the browser can seek without downloading the entire MP3 again.
+6. Only after atomically renaming the `.part` file does it set `COMPLETED`. The UI polls its own API and displays the player.
 
 ## Components
 

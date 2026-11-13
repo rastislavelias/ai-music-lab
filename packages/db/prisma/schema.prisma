@@ -10,6 +10,7 @@ datasource db {
 model Track {
   id             String   @id @default(cuid())
   prompt         String
+  lyrics         String   @default("")
   instrumental   Boolean  @default(false)
   status         String   @default("QUEUED")
   upstreamTaskId String?  @unique
