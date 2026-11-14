@@ -38,6 +38,8 @@ The web application uses project-owned shadcn/ui primitives with the `new-york` 
 
 The worker exposes `ACESTEP_INFERENCE_STEPS` and `ACESTEP_SHIFT` as deployment settings. Turbo remains the portable eight-step, shift-3 default in the repository, while a server may deliberately select the official `acestep-v15-xl-sft` checkpoint with 50 steps and shift 1 for slower final-quality auditions. Using Turbo's shift 3 with SFT can severely degrade the generated audio. Cover generation remains a separate user action so rejected audio variants do not consume image-generation time.
 
+The 16 GB production host uses the standard `acestep-v15-sft` checkpoint at 50 steps and shift 1. XL-SFT generated severe audible artifacts on this host under CPU offload and also exhausted VRAM during lyric alignment, while standard SFT completed at approximately 10.5 GB VRAM. XL-SFT remains installed for future testing on a GPU with at least 24 GB VRAM but is not the active model.
+
 ## Persistence
 
 The official Compose mounts `/app/checkpoints`, the Hugging Face cache, `/app/gradio_outputs`, and `/app/output`. This project preserves those container paths while using bind mounts under `data/`, allowing model data to be backed up alongside SQLite, FLAC masters, MP3 previews, PNG covers, and MP4 exports. The track library is mounted read-only at `/app/references`; the worker sends a relative `references/...` value because the upstream API intentionally rejects absolute audio paths.
