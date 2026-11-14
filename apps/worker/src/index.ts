@@ -7,9 +7,19 @@ import { execFile } from "node:child_process";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { AceStepClient } from "./ace-step";
+import { ImageServiceClient } from "./image-service";
+import {
+  buildEstimatedLrc,
+  probeDuration,
+  renderVideo,
+  storedPath,
+} from "./media";
 
 const pollMs = Number(process.env.WORKER_POLL_MS ?? 5000);
 const taskTimeoutMs = Number(process.env.WORKER_TASK_TIMEOUT_MS ?? 3_600_000);
+const imageTaskTimeoutMs = Number(
+  process.env.IMAGE_TASK_TIMEOUT_MS ?? 3_600_000,
+);
 const storageRoot = path.resolve(
   process.env.TRACK_STORAGE_PATH ?? "/data/tracks",
 );
@@ -17,6 +27,10 @@ const execFileAsync = promisify(execFile);
 const ace = new AceStepClient(
   process.env.ACESTEP_API_URL ?? "http://acestep:8001",
   process.env.ACESTEP_API_KEY || undefined,
+);
+const imageService = new ImageServiceClient(
+  process.env.IMAGE_SERVICE_URL ?? "http://imagegen:8010",
+  imageTaskTimeoutMs,
 );
 let stopping = false;
 
@@ -128,6 +142,10 @@ async function finish(track: Track, result: string | undefined) {
     ]);
     throw error;
   }
+  const duration = await probeDuration(masterPath);
+  const lyricsLrc = track.instrumental
+    ? ""
+    : buildEstimatedLrc(track.lyrics, duration);
   await prisma.track.update({
     where: { id: track.id },
     data: {
@@ -136,11 +154,149 @@ async function finish(track: Track, result: string | undefined) {
       mimeType: "audio/mpeg",
       masterFileName,
       masterMimeType: response.headers.get("content-type") ?? "audio/flac",
+      lyricsLrc,
       completedAt: new Date(),
       error: null,
     },
   });
   console.log(`[worker] Completed ${track.id}`);
+}
+
+async function backfillLyrics() {
+  const tracks = await prisma.track.findMany({
+    where: {
+      status: "COMPLETED",
+      instrumental: false,
+      lyricsLrc: "",
+      OR: [{ masterFileName: { not: null } }, { fileName: { not: null } }],
+    },
+  });
+  for (const track of tracks) {
+    const fileName = track.masterFileName ?? track.fileName;
+    if (!fileName) continue;
+    try {
+      const duration = await probeDuration(storedPath(storageRoot, fileName));
+      await prisma.track.update({
+        where: { id: track.id },
+        data: { lyricsLrc: buildEstimatedLrc(track.lyrics, duration) },
+      });
+    } catch (error) {
+      console.warn(
+        `[worker] Lyrics backfill failed for ${track.id}: ${message(error)}`,
+      );
+    }
+  }
+}
+
+async function claimCover(): Promise<Track | null> {
+  const candidate = await prisma.track.findFirst({
+    where: { coverStatus: "QUEUED", status: "COMPLETED" },
+    orderBy: { updatedAt: "asc" },
+  });
+  if (!candidate) return null;
+  const claimed = await prisma.track.updateMany({
+    where: { id: candidate.id, coverStatus: "QUEUED" },
+    data: { coverStatus: "GENERATING", coverError: null },
+  });
+  return claimed.count === 1 ? candidate : null;
+}
+
+async function generateCover(track: Track) {
+  const fileName = `${track.id}-cover.png`;
+  try {
+    const result = await imageService.generate({
+      prompt: `${track.coverPrompt}. Original album artwork, adult subjects only, cinematic widescreen composition, 16:9. No text, no letters, no logo, no watermark, no childlike face, no celebrity likeness.`,
+      fileName,
+      seed: track.coverSeed ?? 1,
+    });
+    if (track.videoFileName) {
+      await rm(storedPath(storageRoot, track.videoFileName), { force: true });
+    }
+    await prisma.track.update({
+      where: { id: track.id },
+      data: {
+        coverStatus: "READY",
+        coverFileName: result.file_name,
+        coverMimeType: result.mime_type,
+        coverError: null,
+        videoStatus: "NONE",
+        videoFileName: null,
+        videoMimeType: null,
+        videoError: null,
+      },
+    });
+    console.log(`[worker] Generated cover for ${track.id}`);
+  } catch (error) {
+    await rm(storedPath(storageRoot, fileName), { force: true });
+    await prisma.track.update({
+      where: { id: track.id },
+      data: {
+        coverStatus: "FAILED",
+        coverError: message(error).slice(0, 2000),
+      },
+    });
+    console.error(`[worker] Cover failed for ${track.id}: ${message(error)}`);
+  }
+}
+
+async function claimVideo(): Promise<Track | null> {
+  const candidate = await prisma.track.findFirst({
+    where: {
+      videoStatus: "QUEUED",
+      status: "COMPLETED",
+      coverStatus: "READY",
+    },
+    orderBy: { updatedAt: "asc" },
+  });
+  if (!candidate) return null;
+  const claimed = await prisma.track.updateMany({
+    where: { id: candidate.id, videoStatus: "QUEUED" },
+    data: { videoStatus: "RENDERING", videoError: null },
+  });
+  return claimed.count === 1 ? candidate : null;
+}
+
+async function generateVideo(track: Track) {
+  const audioFileName = track.masterFileName ?? track.fileName;
+  if (!track.coverFileName || !audioFileName) {
+    await prisma.track.update({
+      where: { id: track.id },
+      data: {
+        videoStatus: "FAILED",
+        videoError: "Cover art or audio is missing.",
+      },
+    });
+    return;
+  }
+  const fileName = `${track.id}-youtube.mp4`;
+  try {
+    await renderVideo({
+      coverPath: storedPath(storageRoot, track.coverFileName),
+      audioPath: storedPath(storageRoot, audioFileName),
+      lrc: track.lyricsLrc,
+      outputPath: storedPath(storageRoot, fileName),
+    });
+    await prisma.track.update({
+      where: { id: track.id },
+      data: {
+        videoStatus: "READY",
+        videoFileName: fileName,
+        videoMimeType: "video/mp4",
+        videoError: null,
+      },
+    });
+    console.log(`[worker] Rendered video for ${track.id}`);
+  } catch (error) {
+    await rm(storedPath(storageRoot, fileName), { force: true });
+    await prisma.track.update({
+      where: { id: track.id },
+      data: {
+        videoStatus: "FAILED",
+        videoError: message(error).slice(0, 2000),
+      },
+    });
+    console.error(`[worker] Video failed for ${track.id}: ${message(error)}`);
+  }
 }
 
 async function poll(track: Track) {
@@ -173,6 +329,15 @@ async function main() {
       completedAt: new Date(),
     },
   });
+  await prisma.track.updateMany({
+    where: { coverStatus: "GENERATING" },
+    data: { coverStatus: "QUEUED" },
+  });
+  await prisma.track.updateMany({
+    where: { videoStatus: "RENDERING" },
+    data: { videoStatus: "QUEUED" },
+  });
+  await backfillLyrics();
   console.log("[worker] AI Music Lab worker started");
 
   while (!stopping) {
@@ -184,6 +349,18 @@ async function main() {
         take: 10,
       });
       for (const item of active) await poll(item);
+      const musicPending = await prisma.track.count({
+        where: { status: { in: ["QUEUED", "SUBMITTING", "PROCESSING"] } },
+      });
+      if (musicPending === 0) {
+        const cover = await claimCover();
+        if (cover) {
+          await generateCover(cover);
+        } else {
+          const video = await claimVideo();
+          if (video) await generateVideo(video);
+        }
+      }
     } catch (error) {
       console.error(`[worker] Loop error: ${message(error)}`);
     }

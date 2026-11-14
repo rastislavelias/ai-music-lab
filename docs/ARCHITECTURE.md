@@ -10,13 +10,25 @@
 6. The audio route supports HTTP byte ranges so the browser can seek without downloading the entire MP3 again. FLAC and MP3 are separately downloadable.
 7. Only after atomically renaming the files does the worker set `COMPLETED`. The UI polls its own API and displays the player.
 
+## Cover and video flow
+
+1. The user writes or edits a visual prompt on a completed track. The generation worker appends non-negotiable constraints: original composition, adult subjects, 16:9, and no text, logos, watermarks, or celebrity likeness.
+2. The API snapshots the prompt and a random seed, then changes `coverStatus` to `QUEUED`.
+3. The same worker waits until no music job is pending before claiming the cover. This deliberately serialises GPU-heavy work on the single-GPU MVP server.
+4. The replaceable `imagegen` service loads Z-Image-Turbo lazily, uses sequential CPU offload, and writes a 1024×576 PNG into `data/tracks`.
+5. The browser overlays the current lyric line on the cover while the ordinary seekable audio element plays.
+6. A separate video request uses FFmpeg to scale the cover to 1080p, burn timed lyrics, preserve the lossless source until final AAC encoding, and create a fast-start H.264 MP4.
+
+New vocal tracks receive an estimated LRC file derived from their known lyrics and actual audio duration. On worker startup, the same operation backfills existing vocal tracks. ACE-Step 1.5 has an Auto-LRC feature in its Gradio application, but the pinned REST `release_task` contract does not expose it; exact forced alignment remains a future replacement behind the same stored `lyricsLrc` field.
+
 ## Components
 
 - `apps/web`: Next.js 16 App Router, React 19, strict TypeScript, Tailwind 4, and server-side API routes.
 - `apps/worker`: long-running Node worker; queue processing and polling stay outside the web process.
+- `apps/image-service`: private FastAPI/diffusers service with a configurable model ID; no host port is published.
 - `packages/db`: Prisma schema, client, and versioned SQLite migrations.
 - `acestep`: official Python/CUDA image in API mode; it is neither forked nor repackaged.
-- `data/` bind mounts: the single persistence and backup boundary.
+- `data/` bind mounts: the single persistence and backup boundary for database, audio, images, videos, and model caches.
 
 ## Artist-profile snapshots
 

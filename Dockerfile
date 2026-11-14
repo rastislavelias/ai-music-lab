@@ -8,7 +8,7 @@ ENV TRACK_STORAGE_PATH=/data/tracks
 
 WORKDIR /workspace
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends ca-certificates ffmpeg openssl \
+  && apt-get install -y --no-install-recommends ca-certificates ffmpeg fonts-dejavu-core openssl \
   && rm -rf /var/lib/apt/lists/* \
   && corepack enable
 

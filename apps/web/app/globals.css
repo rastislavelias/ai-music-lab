@@ -235,7 +235,79 @@ button.text-button {
 }
 audio {
   height: 38px;
+  width: min(100%, 560px);
   max-width: 100%;
+}
+.visual-player-shell {
+  display: grid;
+  gap: 0.75rem;
+}
+.visual-player {
+  position: relative;
+  overflow: hidden;
+  width: min(100%, 800px);
+  aspect-ratio: 16 / 9;
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  background: #08090b;
+}
+.visual-player img,
+.visual-placeholder {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.visual-placeholder {
+  background:
+    radial-gradient(
+      circle at 72% 35%,
+      rgba(255, 181, 71, 0.38),
+      transparent 24%
+    ),
+    radial-gradient(
+      circle at 22% 30%,
+      rgba(70, 119, 194, 0.35),
+      transparent 38%
+    ),
+    linear-gradient(135deg, #132033, #181012 58%, #5c2d16);
+}
+.visual-player::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+  pointer-events: none;
+  background: linear-gradient(180deg, transparent 52%, rgba(0, 0, 0, 0.72));
+}
+.lyric-overlay {
+  position: absolute;
+  z-index: 1;
+  right: 7%;
+  bottom: 9%;
+  left: 7%;
+  color: rgba(255, 255, 255, 0.68);
+  font-size: clamp(1rem, 2.7vw, 1.8rem);
+  font-weight: 800;
+  line-height: 1.2;
+  text-align: center;
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.9);
+  transition: color 0.2s;
+}
+.lyric-overlay.is-active {
+  color: white;
+}
+.media-actions {
+  display: grid;
+  gap: 0.85rem;
+  max-width: 800px;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  background: rgba(0, 0, 0, 0.16);
+}
+.cover-prompt {
+  min-height: 105px;
+  margin-top: 0.5rem;
+  font-size: 0.82rem;
 }
 .download {
   color: var(--accent);

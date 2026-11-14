@@ -1,6 +1,6 @@
 # AI Music Lab MVP
 
-A local web application for asynchronous music generation with ACE-Step 1.5. Artist profiles preserve a core sound, BPM, language, and a generated style-reference track. Each new generation keeps a lossless FLAC master and a seekable MP3 browser preview.
+A local web application for asynchronous music generation with ACE-Step 1.5. Artist profiles preserve a core sound, BPM, language, and a generated style-reference track. Each new generation keeps a lossless FLAC master and a seekable MP3 browser preview. Completed tracks can receive locally generated 16:9 cover art, playback-synchronised lyrics, and a downloadable 1080p YouTube video.
 
 ## MVP scope
 
@@ -10,10 +10,12 @@ A local web application for asynchronous music generation with ACE-Step 1.5. Art
 - Asynchronous queue with `queued → generating → ready/failed` states.
 - ACE-Step 1.5 REST API in a dedicated GPU container.
 - Persistent Prisma SQLite database, lossless FLAC masters, and MP3 previews.
-- Recent track list, seekable browser playback, FLAC/MP3 download, and “Use as style reference”.
+- Local Z-Image-Turbo cover generation through an isolated, replaceable image service.
+- Recent track list, visual player with timed lyrics, FLAC/MP3/PNG download, and “Use as style reference”.
+- FFmpeg-rendered 1080p MP4 export with the cover, audio, and lyrics.
 - No registration, authentication, or public deployment.
 
-AI lyrics generation, source-audio cover/repaint, retry/cancel, multiple users, object storage, and public deployment are intentionally outside the MVP.
+AI lyrics generation, exact forced lyric alignment, animated image generation, source-audio cover/repaint, retry/cancel, multiple users, object storage, and public deployment are intentionally outside the MVP.
 
 ## Start with one command
 
@@ -30,13 +32,13 @@ cp .env.example .env
 docker compose up -d --build
 ```
 
-Open `http://localhost:3000`. The first start downloads model weights and can take substantially longer than later starts. Generation speed depends on the GPU, VRAM, track length, and selected model; this repository does not claim a universal generation time.
+Open `http://localhost:3000`. The first music request downloads ACE-Step weights. The first cover request separately downloads Z-Image-Turbo weights and can take substantially longer than later requests. Generation speed depends on the GPU, VRAM, track length, selected models, and offload mode; this repository does not claim a universal generation time.
 
 For a GPU with 6–8 GB VRAM, set `ACESTEP_LM_MODEL_PATH=acestep-5Hz-lm-0.6B` in `.env`. The official 4B default requires substantially more VRAM. See the current selection table in the [official ACE-Step README](https://github.com/ace-step/ACE-Step-1.5#-quick-start).
 
 ## Server-only deployment and Mac access
 
-The application, database, FLAC/MP3 files, model weights, and containers belong on the Linux GPU server. Access it from a Mac through an SSH local port forward:
+The application, database, audio/image/video files, model weights, and containers belong on the Linux GPU server. Access it from a Mac through an SSH local port forward:
 
 ```bash
 ssh -N -L 3000:127.0.0.1:3000 <server-alias>
@@ -49,8 +51,8 @@ Then open `http://localhost:3000` on the Mac. Port 3000 does not need to be expo
 Everything required for recovery lives under `data/` on the server:
 
 - `data/app/app.db` — Prisma SQLite database.
-- `data/tracks/` — lossless FLAC masters, MP3 previews, and files exposed read-only to ACE-Step as style references.
-- `data/acestep/checkpoints/` and `data/huggingface/` — model weights and cache.
+- `data/tracks/` — FLAC masters, MP3 previews, PNG covers, MP4 exports, and files exposed read-only to ACE-Step as style references.
+- `data/acestep/checkpoints/` and `data/huggingface/` — ACE-Step and image-model weights/cache.
 - `data/acestep/output/` and `gradio_outputs/` — upstream output directories.
 
 Create a backup (the script briefly stops web and worker processes for a consistent SQLite snapshot):
@@ -88,5 +90,6 @@ The local worker expects ACE-Step at `http://localhost:8001`; using the full Com
 - [Decisions and limitations](docs/DECISIONS.md)
 - [Operations, backup, and recovery](docs/OPERATIONS.md)
 - [Verified ACE-Step sources](docs/ACE_STEP_VERIFICATION.md)
+- [Image model licensing and runtime](docs/IMAGE_MODELS.md)
 
 Before commercial use, review the code and model-weight licences and the legal status of generated material.

@@ -11,6 +11,15 @@ export type TrackView = {
   seed: number | null;
   generationGroupId: string | null;
   masterAvailable: boolean;
+  lyricsLrc: string;
+  coverPrompt: string;
+  coverStatus: string;
+  coverAvailable: boolean;
+  coverSeed: number | null;
+  coverError: string | null;
+  videoStatus: string;
+  videoAvailable: boolean;
+  videoError: string | null;
   status: string;
   error: string | null;
   createdAt: string;
@@ -27,6 +36,8 @@ export type ArtistProfileView = {
 };
 
 const activeStatuses = new Set(["QUEUED", "SUBMITTING", "PROCESSING"]);
+const activeCoverStatuses = new Set(["QUEUED", "GENERATING"]);
+const activeVideoStatuses = new Set(["QUEUED", "RENDERING"]);
 
 const labels: Record<string, string> = {
   QUEUED: "Queued",
@@ -64,7 +75,13 @@ export function MusicLab({
     (profile) => profile.id === selectedProfileId,
   );
   const hasActive = useMemo(
-    () => tracks.some((track) => activeStatuses.has(track.status)),
+    () =>
+      tracks.some(
+        (track) =>
+          activeStatuses.has(track.status) ||
+          activeCoverStatuses.has(track.coverStatus) ||
+          activeVideoStatuses.has(track.videoStatus),
+      ),
     [tracks],
   );
 
@@ -176,6 +193,14 @@ export function MusicLab({
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Unknown error.");
     }
+  }
+
+  function updateTrack(trackId: string, update: Partial<TrackView>) {
+    setTracks((current) =>
+      current.map((track) =>
+        track.id === trackId ? { ...track, ...update } : track,
+      ),
+    );
   }
 
   return (
@@ -403,6 +428,7 @@ export function MusicLab({
                   index={index}
                   selectedProfile={selectedProfile}
                   onUseReference={useAsReference}
+                  onUpdate={updateTrack}
                 />
               ))}
             </div>
@@ -418,14 +444,69 @@ function TrackCard({
   index,
   selectedProfile,
   onUseReference,
+  onUpdate,
 }: {
   track: TrackView;
   index: number;
   selectedProfile?: ArtistProfileView;
   onUseReference: (trackId: string) => Promise<void>;
+  onUpdate: (trackId: string, update: Partial<TrackView>) => void;
 }) {
   const complete = track.status === "COMPLETED";
   const isReference = selectedProfile?.referenceTrackId === track.id;
+  const [coverPrompt, setCoverPrompt] = useState(
+    track.coverPrompt ||
+      `Cinematic wide album cover for an emotional slow-burning electronic song. An adult woman above a coastal city at sunset, eyes closed, face turned toward warm light, natural windswept dark hair, subtle dark streetwear, dramatic blue storm clouds opening into a golden horizon, distant birds, hopeful and intimate mood, realistic photography, teal and amber color grading, atmospheric depth, elegant composition, detailed natural skin, strong rim light.`,
+  );
+  const [busy, setBusy] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  async function generateCover() {
+    setBusy(true);
+    setActionError(null);
+    try {
+      const response = await fetch(`/api/tracks/${track.id}/cover`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: coverPrompt }),
+      });
+      const body = await response.json();
+      if (!response.ok)
+        throw new Error(body.error ?? "Could not queue cover generation.");
+      onUpdate(track.id, {
+        coverPrompt,
+        coverStatus: body.coverStatus,
+        coverSeed: body.coverSeed,
+        coverError: null,
+      });
+    } catch (cause) {
+      setActionError(cause instanceof Error ? cause.message : "Unknown error.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function renderYouTubeVideo() {
+    setBusy(true);
+    setActionError(null);
+    try {
+      const response = await fetch(`/api/tracks/${track.id}/video`, {
+        method: "POST",
+      });
+      const body = await response.json();
+      if (!response.ok)
+        throw new Error(body.error ?? "Could not queue video rendering.");
+      onUpdate(track.id, {
+        videoStatus: body.videoStatus,
+        videoError: null,
+      });
+    } catch (cause) {
+      setActionError(cause instanceof Error ? cause.message : "Unknown error.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <article className="track-card">
       <div className="track-number">{String(index + 1).padStart(2, "0")}</div>
@@ -455,43 +536,170 @@ function TrackCard({
           <p className="mt-2 text-sm text-rose-300">{track.error}</p>
         )}
         {complete && (
-          <div className="mt-4 flex flex-wrap items-center gap-3">
-            <audio
-              controls
-              preload="metadata"
-              src={`/api/tracks/${track.id}/audio`}
-            />
-            <a
-              className="download"
-              href={`/api/tracks/${track.id}/audio?download=1`}
-            >
-              MP3
-            </a>
-            {track.masterAvailable && (
+          <div className="mt-4 grid gap-4">
+            <SyncedPlayer track={track} />
+            <div className="flex flex-wrap items-center gap-3">
               <a
                 className="download"
-                href={`/api/tracks/${track.id}/audio?master=1&download=1`}
+                href={`/api/tracks/${track.id}/audio?download=1`}
               >
-                FLAC master
+                MP3
               </a>
-            )}
-            {selectedProfile && !isReference && (
-              <button
-                type="button"
-                className="text-button"
-                onClick={() => onUseReference(track.id)}
-              >
-                Use as style reference
-              </button>
-            )}
+              {track.masterAvailable && (
+                <a
+                  className="download"
+                  href={`/api/tracks/${track.id}/audio?master=1&download=1`}
+                >
+                  FLAC master
+                </a>
+              )}
+              {track.coverAvailable && (
+                <a
+                  className="download"
+                  href={`/api/tracks/${track.id}/cover?download=1`}
+                >
+                  Cover PNG
+                </a>
+              )}
+              {track.videoAvailable && (
+                <a
+                  className="download"
+                  href={`/api/tracks/${track.id}/video?download=1`}
+                >
+                  YouTube MP4
+                </a>
+              )}
+              {selectedProfile && !isReference && (
+                <button
+                  type="button"
+                  className="text-button"
+                  onClick={() => onUseReference(track.id)}
+                >
+                  Use as style reference
+                </button>
+              )}
+            </div>
+            <div className="media-actions">
+              <div>
+                <label className="field-label" htmlFor={`cover-${track.id}`}>
+                  Cover art prompt
+                </label>
+                <textarea
+                  id={`cover-${track.id}`}
+                  className="cover-prompt"
+                  value={coverPrompt}
+                  onChange={(event) => setCoverPrompt(event.target.value)}
+                  maxLength={2500}
+                />
+              </div>
+              <div className="flex flex-wrap gap-3">
+                <button
+                  type="button"
+                  className="secondary"
+                  disabled={
+                    busy ||
+                    coverPrompt.trim().length < 10 ||
+                    activeCoverStatuses.has(track.coverStatus)
+                  }
+                  onClick={generateCover}
+                >
+                  {activeCoverStatuses.has(track.coverStatus)
+                    ? "Generating cover…"
+                    : track.coverAvailable
+                      ? "Regenerate cover"
+                      : "Generate cover"}
+                </button>
+                {track.coverAvailable && (
+                  <button
+                    type="button"
+                    className="secondary"
+                    disabled={
+                      busy || activeVideoStatuses.has(track.videoStatus)
+                    }
+                    onClick={renderYouTubeVideo}
+                  >
+                    {activeVideoStatuses.has(track.videoStatus)
+                      ? "Rendering video…"
+                      : track.videoAvailable
+                        ? "Render video again"
+                        : "Render YouTube video"}
+                  </button>
+                )}
+              </div>
+              {(actionError || track.coverError || track.videoError) && (
+                <p className="m-0 text-sm text-rose-300">
+                  {actionError || track.coverError || track.videoError}
+                </p>
+              )}
+              <p className="m-0 text-xs leading-5 text-[var(--muted)]">
+                Covers are generated locally with FLUX.1-schnell. Lyric timing
+                is an editable first-pass estimate and may not follow every
+                vocal phrase precisely.
+              </p>
+            </div>
           </div>
         )}
-        {activeStatuses.has(track.status) && (
+        {(activeStatuses.has(track.status) ||
+          activeCoverStatuses.has(track.coverStatus) ||
+          activeVideoStatuses.has(track.videoStatus)) && (
           <div className="progress mt-4">
             <span />
           </div>
         )}
       </div>
     </article>
+  );
+}
+
+function parseLrc(lrc: string) {
+  return lrc
+    .split(/\r?\n/)
+    .map((line) => {
+      const match = /^\[(\d+):(\d+(?:\.\d+)?)\](.*)$/.exec(line.trim());
+      if (!match) return null;
+      return {
+        time: Number(match[1]) * 60 + Number(match[2]),
+        text: match[3].trim(),
+      };
+    })
+    .filter((cue): cue is { time: number; text: string } =>
+      Boolean(cue && Number.isFinite(cue.time) && cue.text),
+    );
+}
+
+function SyncedPlayer({ track }: { track: TrackView }) {
+  const cues = useMemo(() => parseLrc(track.lyricsLrc), [track.lyricsLrc]);
+  const [currentTime, setCurrentTime] = useState(0);
+  let currentLyric = "";
+  for (const cue of cues) {
+    if (cue.time > currentTime) break;
+    currentLyric = cue.text;
+  }
+  return (
+    <div className="visual-player-shell">
+      <div className="visual-player">
+        {track.coverAvailable ? (
+          <img
+            src={`/api/tracks/${track.id}/cover?v=${track.coverSeed ?? 0}`}
+            alt="Generated cover art"
+          />
+        ) : (
+          <div className="visual-placeholder" />
+        )}
+        <div className={`lyric-overlay ${currentLyric ? "is-active" : ""}`}>
+          {currentLyric ||
+            (track.instrumental ? "Instrumental" : "Play to see lyrics")}
+        </div>
+      </div>
+      <audio
+        controls
+        preload="metadata"
+        src={`/api/tracks/${track.id}/audio`}
+        onTimeUpdate={(event) =>
+          setCurrentTime(event.currentTarget.currentTime)
+        }
+        onSeeked={(event) => setCurrentTime(event.currentTarget.currentTime)}
+      />
+    </div>
   );
 }

@@ -47,12 +47,16 @@ services:
         condition: service_completed_successfully
       acestep:
         condition: service_started
+      imagegen:
+        condition: service_started
     environment:
       DATABASE_URL: file:/data/app/app.db
       TRACK_STORAGE_PATH: /data/tracks
       ACESTEP_API_URL: http://acestep:8001
+      IMAGE_SERVICE_URL: http://imagegen:8010
       WORKER_POLL_MS: ${WORKER_POLL_MS:-5000}
       WORKER_TASK_TIMEOUT_MS: ${WORKER_TASK_TIMEOUT_MS:-3600000}
+      IMAGE_TASK_TIMEOUT_MS: ${IMAGE_TASK_TIMEOUT_MS:-3600000}
 
   acestep:
     image: ${ACESTEP_IMAGE:-ghcr.io/ace-step/ace-step-1.5:0.1.8}
@@ -92,4 +96,42 @@ services:
       interval: 30s
       timeout: 10s
       start_period: 30m
+      retries: 5
+
+  imagegen:
+    build:
+      context: .
+      dockerfile: apps/image-service/Dockerfile
+    image: ai-music-lab-imagegen:local
+    environment:
+      NVIDIA_VISIBLE_DEVICES: all
+      HF_HOME: /root/.cache/huggingface
+      IMAGE_MODEL_ID: ${IMAGE_MODEL_ID:-Tongyi-MAI/Z-Image-Turbo}
+      IMAGE_OFFLOAD_MODE: ${IMAGE_OFFLOAD_MODE:-sequential}
+      IMAGE_INFERENCE_STEPS: ${IMAGE_INFERENCE_STEPS:-9}
+      IMAGE_GUIDANCE_SCALE: ${IMAGE_GUIDANCE_SCALE:-0}
+      IMAGE_STORAGE_PATH: /data/tracks
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    volumes:
+      - ./data/huggingface:/root/.cache/huggingface
+      - ./data/tracks:/data/tracks
+    shm_size: 2gb
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8010/health', timeout=5)",
+        ]
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
       retries: 5

@@ -25,6 +25,17 @@ model Track {
   mimeType             String?
   masterFileName       String?
   masterMimeType       String?
+  lyricsLrc            String          @default("")
+  coverPrompt          String          @default("")
+  coverStatus          String          @default("NONE")
+  coverFileName        String?
+  coverMimeType        String?
+  coverSeed            Int?
+  coverError           String?
+  videoStatus          String          @default("NONE")
+  videoFileName        String?
+  videoMimeType        String?
+  videoError           String?
   error                String?
   createdAt            DateTime        @default(now())
   updatedAt            DateTime        @updatedAt
@@ -36,6 +47,8 @@ model Track {
   @@index([status, createdAt])
   @@index([profileId, createdAt])
   @@index([generationGroupId])
+  @@index([coverStatus, createdAt])
+  @@index([videoStatus, createdAt])
 }
 
 model ArtistProfile {

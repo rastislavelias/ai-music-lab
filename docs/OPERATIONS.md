@@ -15,10 +15,14 @@ cp .env.example .env
 docker compose pull acestep
 docker compose up -d --build
 docker compose ps
-docker compose logs -f acestep worker
+docker compose logs -f acestep imagegen worker
 ```
 
-`migrate` is a one-shot service. Web and worker start only after Prisma migrations succeed. ACE-Step downloads models lazily when the first generation is submitted and stores them in bind mounts; monitor disk usage and logs.
+`migrate` is a one-shot service. Web and worker start only after Prisma migrations succeed. ACE-Step downloads models lazily when the first song is submitted. The image service starts quickly but downloads and loads its model lazily on the first cover request. Both use persistent bind mounts; monitor disk usage and logs.
+
+Allow at least 40 GB of free disk for the image cache and temporary download data. The cover endpoint streams JSON whitespace while a long first-run download or generation is active. This is intentional: it prevents the default five-minute HTTP header timeout from incorrectly marking an otherwise healthy first cover as failed.
+
+On the current 16 GB GPU, keep `IMAGE_OFFLOAD_MODE=sequential`. It is slower but minimises peak VRAM while ACE-Step remains loaded. If the first cover fails, inspect `docker compose logs imagegen worker` before retrying; do not repeatedly queue requests during a model download.
 
 ## Private Mac access
 
@@ -34,7 +38,7 @@ This command matches a server configured with `WEB_PORT=3300`. Browse to `http:/
 
 ```bash
 docker compose ps
-docker compose logs -f web worker acestep
+docker compose logs -f web worker acestep imagegen
 docker compose restart worker
 docker compose down
 docker compose up -d
@@ -46,7 +50,7 @@ Do not use `docker compose down -v` as a routine cleanup command. Bind mounts ar
 
 `scripts/backup.sh` stops the application writers, archives `data/` plus an optional `.env`, creates a SHA-256 file, and restarts web and worker. Copy the archive off the server and test recovery on a separate machine.
 
-For a smaller backup, `data/huggingface` and `data/acestep/checkpoints` may be omitted because weights can be downloaded again. A complete offline or fast recovery requires them.
+For a smaller backup, `data/huggingface` and `data/acestep/checkpoints` may be omitted because weights can be downloaded again. This omits both the ACE-Step auxiliary cache and Z-Image-Turbo weights. A complete offline or fast recovery requires them.
 
 ## Reinstalling the server
 
@@ -56,7 +60,7 @@ For a smaller backup, `data/huggingface` and `data/acestep/checkpoints` may be o
 4. Clone the exact same Git commit or tag.
 5. Transfer the archive, run `sha256sum -c ...sha256`, and execute `scripts/restore.sh`.
 6. Run `docker compose up -d --build`.
-7. Verify `docker compose ps`, health checks, and playback of an existing MP3.
+7. Verify `docker compose ps`, health checks, playback of an existing MP3, display of a PNG cover, and download of an MP4 export.
 
 The restore script does not delete existing `data/`; it renames the directory to `data.before-restore-<timestamp>`.
 
@@ -69,3 +73,13 @@ The restore script does not delete existing `data/`; it renames the directory to
 5. Verify health, a test generation, and MP3 download.
 
 If the API contract changed, restore the previous tag. The model cache and application data remain in bind mounts.
+
+## Changing the image model
+
+1. Read the model card and complete licence, not only the repository title.
+2. Create a backup and confirm free disk/RAM/VRAM.
+3. Set `IMAGE_MODEL_ID` and model-specific inference settings in `.env`.
+4. Rebuild and restart with `docker compose up -d --build imagegen worker`.
+5. Generate a non-production test cover and inspect logs, peak VRAM, output dimensions, and commercial-use restrictions.
+
+The generic diffusers service does not guarantee that every pipeline accepts the same guidance and step parameters. A materially different model may require an adapter in `apps/image-service/app.py`.

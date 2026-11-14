@@ -36,6 +36,15 @@ function toView(track: {
   seed: number | null;
   generationGroupId: string | null;
   masterFileName: string | null;
+  lyricsLrc: string;
+  coverPrompt: string;
+  coverStatus: string;
+  coverFileName: string | null;
+  coverSeed: number | null;
+  coverError: string | null;
+  videoStatus: string;
+  videoFileName: string | null;
+  videoError: string | null;
   status: string;
   error: string | null;
   createdAt: Date;
@@ -44,7 +53,11 @@ function toView(track: {
   return {
     ...track,
     masterAvailable: Boolean(track.masterFileName),
+    coverAvailable: Boolean(track.coverFileName),
+    videoAvailable: Boolean(track.videoFileName),
     masterFileName: undefined,
+    coverFileName: undefined,
+    videoFileName: undefined,
     createdAt: track.createdAt.toISOString(),
     completedAt: track.completedAt?.toISOString() ?? null,
   };

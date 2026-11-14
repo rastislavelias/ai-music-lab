@@ -8,15 +8,33 @@ Compose defaults to `ghcr.io/ace-step/ace-step-1.5:0.1.8`, an existing official 
 
 The documented `/release_task` API has no dedicated `instrumental` boolean. The official API reference specifies the `[inst]` marker, so the worker sends `lyrics: "[inst]"` when instrumental mode is enabled and sends the user's lyrics for a vocal track. AI lyrics generation is outside the MVP.
 
+## Image model and licence boundary
+
+The default is the ungated `Tongyi-MAI/Z-Image-Turbo`. Its official model card declares Apache-2.0, describes a 6B-parameter model that fits within 16 GB consumer GPUs, and specifies nine scheduler steps (eight transformer evaluations) with zero guidance. It avoids requiring a Hugging Face account or token during a clean reinstall.
+
+`black-forest-labs/FLUX.1-schnell` is also Apache-2.0 and permits commercial use, but its official Hugging Face download is gated behind account acceptance. It is therefore documented as an optional model rather than the unattended-install default. This is not the same model or licence as FLUX.1-dev.
+
+The original `Qwen/Qwen-Image` is also Apache-2.0, but its published repository is approximately 58 GB and the model card describes a 20B-parameter model. It is not the practical default for the current 16 GB GPU. `Qwen/Qwen-Image-2.1` uses a separate Qwen Research licence and must not be treated as interchangeable with the Apache-2.0 release.
+
+`IMAGE_MODEL_ID` keeps the service replaceable, but changing it is an explicit operator decision: review the new model's licence, memory requirements, API parameters, and output policy before deployment. An open model licence permits use of the model; it is not an originality guarantee or IP indemnity for every generated image.
+
+## Single-GPU scheduling
+
+ACE-Step remains loaded on the GPU. The image service therefore defaults to sequential CPU offload and the application worker only starts cover generation when no music job is queued or active. This favours reliability over cover speed on the RTX 4060 Ti 16 GB host. Video rendering is CPU-bound and is also serialised by the MVP worker to keep the queue behaviour simple.
+
+## Timed lyrics
+
+ACE-Step documents Auto-LRC, but the pinned official REST request model does not expose an Auto-LRC option. This version creates an explicitly labelled first-pass line timing from the known lyrics and measured audio duration. The database and UI already use standard LRC text so a future forced aligner can improve accuracy without a schema or player redesign.
+
 ## Persistence
 
-The official Compose mounts `/app/checkpoints`, the Hugging Face cache, `/app/gradio_outputs`, and `/app/output`. This project preserves those container paths while using bind mounts under `data/`, allowing model data to be backed up alongside SQLite, FLAC masters, and MP3 previews. The track library is mounted read-only at `/references` inside ACE-Step.
+The official Compose mounts `/app/checkpoints`, the Hugging Face cache, `/app/gradio_outputs`, and `/app/output`. This project preserves those container paths while using bind mounts under `data/`, allowing model data to be backed up alongside SQLite, FLAC masters, MP3 previews, PNG covers, and MP4 exports. The track library is mounted read-only at `/references` inside ACE-Step.
 
 The ACE-Step queue and job store are in memory. SQLite is therefore the source of truth for the user-facing library. Submitted `PROCESSING` jobs are polled again after a restart using their saved `task_id`. An ambiguous `SUBMITTING` job is marked failed after a crash to avoid silently creating a duplicate.
 
 ## MVP security boundary
 
-The application has no authentication and port 3000 must not be exposed to the internet. The ACE-Step API is not published to a host port. The audio endpoint only accepts a filename stored in the database and verifies that the resolved path remains inside `TRACK_STORAGE_PATH`.
+The application has no authentication and port 3000 must not be exposed to the internet. Neither the ACE-Step API nor the image service is published to a host port. Audio, cover, and video endpoints only accept filenames stored in the database and verify that resolved paths remain inside `TRACK_STORAGE_PATH`.
 
 `ACESTEP_API_KEY` is deliberately absent rather than present with an empty value. The pinned official image treats an empty value as authentication enabled, which makes local worker requests fail with HTTP 401.
 
@@ -24,6 +42,8 @@ The application has no authentication and port 3000 must not be exposed to the i
 
 - Retry, cancellation, and priorities.
 - AI lyrics generation.
+- Precise phoneme/word forced alignment and a lyric timing editor.
+- Animated covers, parallax, image LoRA, and visual profiles.
 - Duration, key, manual seed, and model selector.
 - Uploaded reference audio, source-audio cover, repaint, and stems.
 - PostgreSQL, Redis, and S3.
