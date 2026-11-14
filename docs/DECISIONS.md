@@ -34,6 +34,10 @@ BPM written only in prose is not reliable. A verified generation requested appro
 
 The web application uses project-owned shadcn/ui primitives with the `new-york` style, Tailwind 4 semantic theme variables, and Radix accessibility primitives for select and checkbox behaviour. The components remain in the repository so the product can evolve its visual identity without depending on a runtime component service.
 
+## Quality inference mode
+
+The worker exposes `ACESTEP_INFERENCE_STEPS` as a deployment setting. Turbo remains the portable eight-step default in the repository, while a server may deliberately select the official `acestep-v15-xl-sft` checkpoint and 50 steps for slower final-quality auditions. Cover generation remains a separate user action so rejected audio variants do not consume image-generation time.
+
 ## Persistence
 
 The official Compose mounts `/app/checkpoints`, the Hugging Face cache, `/app/gradio_outputs`, and `/app/output`. This project preserves those container paths while using bind mounts under `data/`, allowing model data to be backed up alongside SQLite, FLAC masters, MP3 previews, PNG covers, and MP4 exports. The track library is mounted read-only at `/app/references`; the worker sends a relative `references/...` value because the upstream API intentionally rejects absolute audio paths.

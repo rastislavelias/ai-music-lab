@@ -27,6 +27,7 @@ describe("AceStepClient submission", () => {
         keyScale: "A minor",
         timeSignature: "4/4",
         audioDuration: 180,
+        inferenceSteps: 50,
         vocalLanguage: "en",
         referenceAudioPath: "references/style.flac",
       }),
@@ -44,6 +45,7 @@ describe("AceStepClient submission", () => {
       key_scale: "A minor",
       time_signature: "4/4",
       audio_duration: 180,
+      inference_steps: 50,
     });
   });
 

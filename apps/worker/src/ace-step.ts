@@ -26,6 +26,7 @@ export type AceSubmitInput = {
   keyScale?: string;
   timeSignature?: string;
   audioDuration?: number | null;
+  inferenceSteps?: number;
   vocalLanguage: string;
   referenceAudioPath?: string;
 };
@@ -60,6 +61,7 @@ export class AceStepClient {
           key_scale: input.keyScale ?? "",
           time_signature: input.timeSignature ?? "4/4",
           audio_duration: input.audioDuration ?? null,
+          inference_steps: input.inferenceSteps ?? 8,
           vocal_language: input.vocalLanguage,
           reference_audio_path: input.referenceAudioPath ?? null,
         }),

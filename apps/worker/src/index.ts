@@ -21,6 +21,7 @@ const taskTimeoutMs = Number(process.env.WORKER_TASK_TIMEOUT_MS ?? 3_600_000);
 const imageTaskTimeoutMs = Number(
   process.env.IMAGE_TASK_TIMEOUT_MS ?? 3_600_000,
 );
+const aceInferenceSteps = Number(process.env.ACESTEP_INFERENCE_STEPS ?? 8);
 const storageRoot = path.resolve(
   process.env.TRACK_STORAGE_PATH ?? "/data/tracks",
 );
@@ -85,6 +86,7 @@ async function submit(track: Track) {
       keyScale: track.keyScale,
       timeSignature: track.timeSignature,
       audioDuration: track.audioDuration,
+      inferenceSteps: aceInferenceSteps,
       vocalLanguage: track.vocalLanguage,
       referenceAudioPath,
     });
