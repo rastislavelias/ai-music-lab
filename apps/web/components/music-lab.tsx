@@ -1,6 +1,20 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 
 export type TrackView = {
   id: string;
@@ -9,6 +23,10 @@ export type TrackView = {
   instrumental: boolean;
   profileId: string | null;
   seed: number | null;
+  bpm: number | null;
+  keyScale: string;
+  timeSignature: string;
+  audioDuration: number | null;
   generationGroupId: string | null;
   masterAvailable: boolean;
   lyricsLrc: string;
@@ -63,6 +81,10 @@ export function MusicLab({
   const [lyrics, setLyrics] = useState("");
   const [instrumental, setInstrumental] = useState(false);
   const [variants, setVariants] = useState(1);
+  const [bpm, setBpm] = useState("110");
+  const [keyScale, setKeyScale] = useState("A minor");
+  const [timeSignature, setTimeSignature] = useState("4/4");
+  const [audioDuration, setAudioDuration] = useState("180");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [profileName, setProfileName] = useState("");
@@ -115,6 +137,10 @@ export function MusicLab({
           instrumental,
           profileId: selectedProfileId || null,
           variants,
+          bpm: bpm ? Number(bpm) : null,
+          keyScale,
+          timeSignature,
+          audioDuration: audioDuration ? Number(audioDuration) : null,
         }),
       });
       const body = await response.json();
@@ -220,193 +246,268 @@ export function MusicLab({
           </div>
         </header>
 
-        <section className="panel mb-10 grid gap-8 p-6 sm:p-8 lg:grid-cols-[1.35fr_.65fr]">
-          <form onSubmit={submit}>
-            <div className="mb-5 grid gap-4 sm:grid-cols-2">
-              <div>
-                <label htmlFor="profile" className="label">
-                  Artist profile
-                </label>
-                <select
-                  id="profile"
-                  className="field mt-3"
-                  value={selectedProfileId}
-                  onChange={(event) => setSelectedProfileId(event.target.value)}
-                >
-                  <option value="">No profile</option>
-                  {profiles.map((profile) => (
-                    <option key={profile.id} value={profile.id}>
-                      {profile.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label htmlFor="variants" className="label">
-                  Variants
-                </label>
-                <select
-                  id="variants"
-                  className="field mt-3"
-                  value={variants}
-                  onChange={(event) => setVariants(Number(event.target.value))}
-                >
-                  <option value={1}>1 track</option>
-                  <option value={2}>2 tracks</option>
-                  <option value={4}>4 tracks</option>
-                </select>
-              </div>
-            </div>
-
-            <label htmlFor="prompt" className="label">
-              Song prompt
-            </label>
-            <textarea
-              id="prompt"
-              value={prompt}
-              onChange={(event) => setPrompt(event.target.value)}
-              placeholder="A slow-burning melancholic deep-house song with a restrained groove and an intimate chorus…"
-              minLength={3}
-              maxLength={2000}
-              required
-            />
-            {!instrumental && (
-              <div className="mt-5">
-                <label htmlFor="lyrics" className="label">
-                  Lyrics
-                </label>
-                <textarea
-                  id="lyrics"
-                  className="lyrics-input"
-                  value={lyrics}
-                  onChange={(event) => setLyrics(event.target.value)}
-                  placeholder={
-                    "[Verse]\nWrite the words the singer should perform…\n\n[Chorus]\nAdd a memorable chorus…"
-                  }
-                  minLength={3}
-                  maxLength={10000}
-                  required
-                />
-              </div>
-            )}
-            <div className="mt-4 flex flex-wrap items-center justify-between gap-4">
-              <label className="toggle-row">
-                <input
-                  type="checkbox"
-                  checked={instrumental}
-                  onChange={(event) => setInstrumental(event.target.checked)}
-                />
-                <span>Instrumental track</span>
-              </label>
-              <button
-                type="submit"
-                disabled={
-                  submitting ||
-                  prompt.trim().length < 3 ||
-                  (!instrumental && lyrics.trim().length < 3)
-                }
-              >
-                {submitting
-                  ? "Queueing…"
-                  : `Generate ${variants} ${variants === 1 ? "track" : "variants"}`}
-              </button>
-            </div>
-            {error && <p className="mt-4 text-sm text-rose-300">{error}</p>}
-          </form>
-
-          <aside className="rounded-2xl border border-white/8 bg-black/15 p-5">
-            <div className="label">Artist profile</div>
-            {selectedProfile ? (
-              <div className="mt-4 grid gap-4">
+        <Card className="panel mb-10">
+          <CardContent className="grid gap-8 p-6 sm:p-8 lg:grid-cols-[1.35fr_.65fr]">
+            <form onSubmit={submit}>
+              <div className="mb-5 grid gap-4 sm:grid-cols-2">
                 <div>
-                  <div className="text-sm font-bold">
-                    {selectedProfile.name}
-                  </div>
-                  <div className="mt-1 text-xs text-[var(--muted)]">
-                    {selectedProfile.referenceTrackId
-                      ? "Style reference is active"
-                      : "Choose a completed track as the style reference"}
-                  </div>
+                  <Label htmlFor="profile" className="label">
+                    Artist profile
+                  </Label>
+                  <Select
+                    value={selectedProfileId || "__none__"}
+                    onValueChange={(value) =>
+                      setSelectedProfileId(value === "__none__" ? "" : value)
+                    }
+                  >
+                    <SelectTrigger id="profile" className="mt-3">
+                      <SelectValue placeholder="No profile" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">No profile</SelectItem>
+                      {profiles.map((profile) => (
+                        <SelectItem key={profile.id} value={profile.id}>
+                          {profile.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div>
-                  <label htmlFor="base-prompt" className="field-label">
-                    Core sound
-                  </label>
-                  <textarea
-                    id="base-prompt"
-                    className="compact-textarea"
-                    value={profileBasePrompt}
-                    onChange={(event) =>
-                      setProfileBasePrompt(event.target.value)
-                    }
-                    placeholder="Warm deep house, polished intimate production, smooth bass…"
+                  <Label htmlFor="variants" className="label">
+                    Variants
+                  </Label>
+                  <Select
+                    value={String(variants)}
+                    onValueChange={(value) => setVariants(Number(value))}
+                  >
+                    <SelectTrigger id="variants" className="mt-3">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">1 track</SelectItem>
+                      <SelectItem value="2">2 tracks</SelectItem>
+                      <SelectItem value="4">4 tracks</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <div>
+                  <Label htmlFor="generation-bpm" className="field-label">
+                    BPM
+                  </Label>
+                  <Input
+                    id="generation-bpm"
+                    className="mt-2"
+                    type="number"
+                    min={40}
+                    max={240}
+                    value={bpm}
+                    onChange={(event) => setBpm(event.target.value)}
+                    placeholder="110"
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label htmlFor="profile-bpm" className="field-label">
-                      BPM
-                    </label>
-                    <input
-                      id="profile-bpm"
-                      className="field mt-2"
-                      type="number"
-                      min={40}
-                      max={240}
-                      value={profileBpm}
-                      onChange={(event) => setProfileBpm(event.target.value)}
-                      placeholder="124"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="profile-language" className="field-label">
-                      Language
-                    </label>
-                    <input
-                      id="profile-language"
-                      className="field mt-2"
-                      value={profileLanguage}
-                      onChange={(event) =>
-                        setProfileLanguage(event.target.value)
-                      }
-                      placeholder="en"
-                    />
-                  </div>
+                <div>
+                  <Label htmlFor="generation-duration" className="field-label">
+                    Seconds
+                  </Label>
+                  <Input
+                    id="generation-duration"
+                    className="mt-2"
+                    type="number"
+                    min={10}
+                    max={600}
+                    value={audioDuration}
+                    onChange={(event) => setAudioDuration(event.target.value)}
+                    placeholder="180"
+                  />
                 </div>
-                <button
-                  type="button"
-                  className="secondary"
-                  disabled={savingProfile}
-                  onClick={saveProfile}
-                >
-                  {savingProfile ? "Saving…" : "Save profile"}
-                </button>
+                <div>
+                  <Label htmlFor="generation-key" className="field-label">
+                    Key / scale
+                  </Label>
+                  <Input
+                    id="generation-key"
+                    className="mt-2"
+                    value={keyScale}
+                    onChange={(event) => setKeyScale(event.target.value)}
+                    placeholder="A minor"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="generation-meter" className="field-label">
+                    Meter
+                  </Label>
+                  <Select
+                    value={timeSignature}
+                    onValueChange={setTimeSignature}
+                  >
+                    <SelectTrigger id="generation-meter" className="mt-2">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="4/4">4/4</SelectItem>
+                      <SelectItem value="3/4">3/4</SelectItem>
+                      <SelectItem value="6/8">6/8</SelectItem>
+                      <SelectItem value="2/4">2/4</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-            ) : (
-              <div className="mt-4 grid gap-3">
-                <p className="m-0 text-sm leading-6 text-[var(--muted)]">
-                  Create a profile to keep one core sound and reuse a completed
-                  song as the reference for future generations.
-                </p>
-                <input
-                  className="field"
-                  value={profileName}
-                  onChange={(event) => setProfileName(event.target.value)}
-                  placeholder="Artist or project name"
-                  maxLength={80}
-                />
-                <button
-                  type="button"
-                  className="secondary"
-                  disabled={savingProfile || profileName.trim().length < 2}
-                  onClick={createProfile}
+
+              <Label htmlFor="prompt" className="label">
+                Song prompt
+              </Label>
+              <Textarea
+                id="prompt"
+                className="mt-3 min-h-36"
+                value={prompt}
+                onChange={(event) => setPrompt(event.target.value)}
+                placeholder="A polished melodic deep-house track with an immediate groove, layered percussion, evolving bass and a memorable vocal hook…"
+                minLength={3}
+                maxLength={2000}
+                required
+              />
+              {!instrumental && (
+                <div className="mt-5">
+                  <Label htmlFor="lyrics" className="label">
+                    Lyrics
+                  </Label>
+                  <Textarea
+                    id="lyrics"
+                    className="mt-3 min-h-56"
+                    value={lyrics}
+                    onChange={(event) => setLyrics(event.target.value)}
+                    placeholder={
+                      "[Verse]\nWrite the words the singer should perform…\n\n[Chorus]\nAdd a memorable chorus…"
+                    }
+                    minLength={3}
+                    maxLength={10000}
+                    required
+                  />
+                </div>
+              )}
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-4">
+                <Label className="toggle-row">
+                  <Checkbox
+                    checked={instrumental}
+                    onCheckedChange={(checked) =>
+                      setInstrumental(checked === true)
+                    }
+                  />
+                  <span>Instrumental track</span>
+                </Label>
+                <Button
+                  type="submit"
+                  disabled={
+                    submitting ||
+                    prompt.trim().length < 3 ||
+                    (!instrumental && lyrics.trim().length < 3)
+                  }
                 >
-                  Create artist profile
-                </button>
+                  {submitting
+                    ? "Queueing…"
+                    : `Generate ${variants} ${variants === 1 ? "track" : "variants"}`}
+                </Button>
               </div>
-            )}
-          </aside>
-        </section>
+              {error && <p className="mt-4 text-sm text-rose-300">{error}</p>}
+            </form>
+
+            <aside className="rounded-2xl border border-white/8 bg-black/15 p-5">
+              <div className="label">Artist profile</div>
+              {selectedProfile ? (
+                <div className="mt-4 grid gap-4">
+                  <div>
+                    <div className="text-sm font-bold">
+                      {selectedProfile.name}
+                    </div>
+                    <div className="mt-1 text-xs text-[var(--muted)]">
+                      {selectedProfile.referenceTrackId
+                        ? "Style reference is active"
+                        : "Choose a completed track as the style reference"}
+                    </div>
+                  </div>
+                  <div>
+                    <Label htmlFor="base-prompt" className="field-label">
+                      Core sound
+                    </Label>
+                    <Textarea
+                      id="base-prompt"
+                      className="mt-2 min-h-28 text-[0.85rem]"
+                      value={profileBasePrompt}
+                      onChange={(event) =>
+                        setProfileBasePrompt(event.target.value)
+                      }
+                      placeholder="Warm deep house, polished intimate production, smooth bass…"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label htmlFor="profile-bpm" className="field-label">
+                        BPM
+                      </Label>
+                      <Input
+                        id="profile-bpm"
+                        className="mt-2"
+                        type="number"
+                        min={40}
+                        max={240}
+                        value={profileBpm}
+                        onChange={(event) => setProfileBpm(event.target.value)}
+                        placeholder="124"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="profile-language" className="field-label">
+                        Language
+                      </Label>
+                      <Input
+                        id="profile-language"
+                        className="mt-2"
+                        value={profileLanguage}
+                        onChange={(event) =>
+                          setProfileLanguage(event.target.value)
+                        }
+                        placeholder="en"
+                      />
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    disabled={savingProfile}
+                    onClick={saveProfile}
+                  >
+                    {savingProfile ? "Saving…" : "Save profile"}
+                  </Button>
+                </div>
+              ) : (
+                <div className="mt-4 grid gap-3">
+                  <p className="m-0 text-sm leading-6 text-[var(--muted)]">
+                    Create a profile to keep one core sound and reuse a
+                    completed song as the reference for future generations.
+                  </p>
+                  <Input
+                    value={profileName}
+                    onChange={(event) => setProfileName(event.target.value)}
+                    placeholder="Artist or project name"
+                    maxLength={80}
+                  />
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    disabled={savingProfile || profileName.trim().length < 2}
+                    onClick={createProfile}
+                  >
+                    Create artist profile
+                  </Button>
+                </div>
+              )}
+            </aside>
+          </CardContent>
+        </Card>
 
         <section>
           <div className="mb-4 flex items-center justify-between">
@@ -454,6 +555,14 @@ function TrackCard({
 }) {
   const complete = track.status === "COMPLETED";
   const isReference = selectedProfile?.referenceTrackId === track.id;
+  const statusVariant =
+    track.status === "COMPLETED"
+      ? "default"
+      : track.status === "FAILED"
+        ? "destructive"
+        : activeStatuses.has(track.status)
+          ? "processing"
+          : "secondary";
   const [coverPrompt, setCoverPrompt] = useState(
     track.coverPrompt ||
       `Cinematic wide album cover for an emotional slow-burning electronic song. An adult woman above a coastal city at sunset, eyes closed, face turned toward warm light, natural windswept dark hair, subtle dark streetwear, dramatic blue storm clouds opening into a golden horizon, distant birds, hopeful and intimate mood, realistic photography, teal and amber color grading, atmospheric depth, elegant composition, detailed natural skin, strong rim light.`,
@@ -508,146 +617,153 @@ function TrackCard({
   }
 
   return (
-    <article className="track-card">
-      <div className="track-number">{String(index + 1).padStart(2, "0")}</div>
-      <div className="min-w-0 flex-1">
-        <div className="mb-2 flex flex-wrap items-center gap-2">
-          <span className={`status status-${track.status.toLowerCase()}`}>
-            {labels[track.status] ?? track.status}
-          </span>
-          <span className="chip">
-            {track.instrumental ? "INSTRUMENTAL" : "VOCALS"}
-          </span>
-          {isReference && (
-            <span className="chip reference-chip">REFERENCE</span>
+    <Card className="track-card flex-row rounded-2xl">
+      <CardContent className="contents">
+        <div className="track-number">{String(index + 1).padStart(2, "0")}</div>
+        <div className="min-w-0 flex-1">
+          <div className="mb-2 flex flex-wrap items-center gap-2">
+            <Badge variant={statusVariant}>
+              {labels[track.status] ?? track.status}
+            </Badge>
+            <Badge variant="secondary">
+              {track.instrumental ? "INSTRUMENTAL" : "VOCALS"}
+            </Badge>
+            {isReference && <Badge variant="outline">REFERENCE</Badge>}
+            {track.bpm && <Badge variant="secondary">{track.bpm} BPM</Badge>}
+            {track.keyScale && (
+              <Badge variant="secondary">{track.keyScale}</Badge>
+            )}
+            {track.timeSignature && (
+              <Badge variant="secondary">{track.timeSignature}</Badge>
+            )}
+            {track.seed && <span className="seed">seed {track.seed}</span>}
+            <time className="text-xs text-[var(--muted)]">
+              {new Intl.DateTimeFormat("en-GB", {
+                dateStyle: "medium",
+                timeStyle: "short",
+              }).format(new Date(track.createdAt))}
+            </time>
+          </div>
+          <p className="line-clamp-2 text-sm leading-6 text-white/85">
+            {track.prompt}
+          </p>
+          {track.error && (
+            <p className="mt-2 text-sm text-rose-300">{track.error}</p>
           )}
-          {track.seed && <span className="seed">seed {track.seed}</span>}
-          <time className="text-xs text-[var(--muted)]">
-            {new Intl.DateTimeFormat("en-GB", {
-              dateStyle: "medium",
-              timeStyle: "short",
-            }).format(new Date(track.createdAt))}
-          </time>
-        </div>
-        <p className="line-clamp-2 text-sm leading-6 text-white/85">
-          {track.prompt}
-        </p>
-        {track.error && (
-          <p className="mt-2 text-sm text-rose-300">{track.error}</p>
-        )}
-        {complete && (
-          <div className="mt-4 grid gap-4">
-            <SyncedPlayer track={track} />
-            <div className="flex flex-wrap items-center gap-3">
-              <a
-                className="download"
-                href={`/api/tracks/${track.id}/audio?download=1`}
-              >
-                MP3
-              </a>
-              {track.masterAvailable && (
+          {complete && (
+            <div className="mt-4 grid gap-4">
+              <SyncedPlayer track={track} />
+              <div className="flex flex-wrap items-center gap-3">
                 <a
                   className="download"
-                  href={`/api/tracks/${track.id}/audio?master=1&download=1`}
+                  href={`/api/tracks/${track.id}/audio?download=1`}
                 >
-                  FLAC master
+                  MP3
                 </a>
-              )}
-              {track.coverAvailable && (
-                <a
-                  className="download"
-                  href={`/api/tracks/${track.id}/cover?download=1`}
-                >
-                  Cover PNG
-                </a>
-              )}
-              {track.videoAvailable && (
-                <a
-                  className="download"
-                  href={`/api/tracks/${track.id}/video?download=1`}
-                >
-                  YouTube MP4
-                </a>
-              )}
-              {selectedProfile && !isReference && (
-                <button
-                  type="button"
-                  className="text-button"
-                  onClick={() => onUseReference(track.id)}
-                >
-                  Use as style reference
-                </button>
-              )}
-            </div>
-            <div className="media-actions">
-              <div>
-                <label className="field-label" htmlFor={`cover-${track.id}`}>
-                  Cover art prompt
-                </label>
-                <textarea
-                  id={`cover-${track.id}`}
-                  className="cover-prompt"
-                  value={coverPrompt}
-                  onChange={(event) => setCoverPrompt(event.target.value)}
-                  maxLength={2500}
-                />
-              </div>
-              <div className="flex flex-wrap gap-3">
-                <button
-                  type="button"
-                  className="secondary"
-                  disabled={
-                    busy ||
-                    coverPrompt.trim().length < 10 ||
-                    activeCoverStatuses.has(track.coverStatus)
-                  }
-                  onClick={generateCover}
-                >
-                  {activeCoverStatuses.has(track.coverStatus)
-                    ? "Generating cover…"
-                    : track.coverAvailable
-                      ? "Regenerate cover"
-                      : "Generate cover"}
-                </button>
-                {track.coverAvailable && (
-                  <button
-                    type="button"
-                    className="secondary"
-                    disabled={
-                      busy || activeVideoStatuses.has(track.videoStatus)
-                    }
-                    onClick={renderYouTubeVideo}
+                {track.masterAvailable && (
+                  <a
+                    className="download"
+                    href={`/api/tracks/${track.id}/audio?master=1&download=1`}
                   >
-                    {activeVideoStatuses.has(track.videoStatus)
-                      ? "Rendering video…"
-                      : track.videoAvailable
-                        ? "Render video again"
-                        : "Render YouTube video"}
-                  </button>
+                    FLAC master
+                  </a>
+                )}
+                {track.coverAvailable && (
+                  <a
+                    className="download"
+                    href={`/api/tracks/${track.id}/cover?download=1`}
+                  >
+                    Cover PNG
+                  </a>
+                )}
+                {track.videoAvailable && (
+                  <a
+                    className="download"
+                    href={`/api/tracks/${track.id}/video?download=1`}
+                  >
+                    YouTube MP4
+                  </a>
+                )}
+                {selectedProfile && !isReference && (
+                  <Button
+                    type="button"
+                    variant="link"
+                    onClick={() => onUseReference(track.id)}
+                  >
+                    Use as style reference
+                  </Button>
                 )}
               </div>
-              {(actionError || track.coverError || track.videoError) && (
-                <p className="m-0 text-sm text-rose-300">
-                  {actionError || track.coverError || track.videoError}
+              <div className="media-actions">
+                <div>
+                  <Label className="field-label" htmlFor={`cover-${track.id}`}>
+                    Cover art prompt
+                  </Label>
+                  <Textarea
+                    id={`cover-${track.id}`}
+                    className="mt-2 min-h-28 text-[0.82rem]"
+                    value={coverPrompt}
+                    onChange={(event) => setCoverPrompt(event.target.value)}
+                    maxLength={2500}
+                  />
+                </div>
+                <div className="flex flex-wrap gap-3">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    disabled={
+                      busy ||
+                      coverPrompt.trim().length < 10 ||
+                      activeCoverStatuses.has(track.coverStatus)
+                    }
+                    onClick={generateCover}
+                  >
+                    {activeCoverStatuses.has(track.coverStatus)
+                      ? "Generating cover…"
+                      : track.coverAvailable
+                        ? "Regenerate cover"
+                        : "Generate cover"}
+                  </Button>
+                  {track.coverAvailable && (
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      disabled={
+                        busy || activeVideoStatuses.has(track.videoStatus)
+                      }
+                      onClick={renderYouTubeVideo}
+                    >
+                      {activeVideoStatuses.has(track.videoStatus)
+                        ? "Rendering video…"
+                        : track.videoAvailable
+                          ? "Render video again"
+                          : "Render YouTube video"}
+                    </Button>
+                  )}
+                </div>
+                {(actionError || track.coverError || track.videoError) && (
+                  <p className="m-0 text-sm text-rose-300">
+                    {actionError || track.coverError || track.videoError}
+                  </p>
+                )}
+                <p className="m-0 text-xs leading-5 text-[var(--muted)]">
+                  Covers use local Z-Image-Turbo. New songs use ACE-Step&apos;s
+                  native latent-attention lyric alignment; older tracks may
+                  still show estimated timing until regenerated.
                 </p>
-              )}
-              <p className="m-0 text-xs leading-5 text-[var(--muted)]">
-                Covers are generated locally with FLUX.1-schnell. Lyric timing
-                is an editable first-pass estimate and may not follow every
-                vocal phrase precisely.
-              </p>
+              </div>
             </div>
-          </div>
-        )}
-        {(activeStatuses.has(track.status) ||
-          activeCoverStatuses.has(track.coverStatus) ||
-          activeVideoStatuses.has(track.videoStatus)) && (
-          <div className="progress mt-4">
-            <span />
-          </div>
-        )}
-      </div>
-    </article>
+          )}
+          {(activeStatuses.has(track.status) ||
+            activeCoverStatuses.has(track.coverStatus) ||
+            activeVideoStatuses.has(track.videoStatus)) && (
+            <div className="progress mt-4">
+              <span />
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 

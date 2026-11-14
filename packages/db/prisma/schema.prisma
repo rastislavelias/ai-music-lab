@@ -17,6 +17,9 @@ model Track {
   referenceTrackId     String?
   vocalLanguage        String          @default("en")
   bpm                  Int?
+  keyScale             String          @default("")
+  timeSignature        String          @default("4/4")
+  audioDuration        Int?
   seed                 Int?
   generationGroupId    String?
   status               String          @default("QUEUED")

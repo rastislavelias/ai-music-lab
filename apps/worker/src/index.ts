@@ -12,6 +12,7 @@ import {
   buildEstimatedLrc,
   probeDuration,
   renderVideo,
+  sanitizeNativeLrc,
   storedPath,
 } from "./media";
 
@@ -81,6 +82,9 @@ async function submit(track: Track) {
       instrumental: track.instrumental,
       seed: track.seed ?? 1,
       bpm: track.bpm,
+      keyScale: track.keyScale,
+      timeSignature: track.timeSignature,
+      audioDuration: track.audioDuration,
       vocalLanguage: track.vocalLanguage,
       referenceAudioPath,
     });
@@ -145,7 +149,8 @@ async function finish(track: Track, result: string | undefined) {
   const duration = await probeDuration(masterPath);
   const lyricsLrc = track.instrumental
     ? ""
-    : buildEstimatedLrc(track.lyrics, duration);
+    : sanitizeNativeLrc(audio.lrc_text ?? "") ||
+      buildEstimatedLrc(track.lyrics, duration);
   await prisma.track.update({
     where: { id: track.id },
     data: {

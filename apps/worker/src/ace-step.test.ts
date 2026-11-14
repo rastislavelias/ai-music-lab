@@ -24,6 +24,9 @@ describe("AceStepClient submission", () => {
         instrumental: false,
         seed: 1234,
         bpm: 124,
+        keyScale: "A minor",
+        timeSignature: "4/4",
+        audioDuration: 180,
         vocalLanguage: "en",
         referenceAudioPath: "/references/style.flac",
       }),
@@ -37,6 +40,10 @@ describe("AceStepClient submission", () => {
       seed: 1234,
       use_random_seed: false,
       reference_audio_path: "/references/style.flac",
+      bpm: 124,
+      key_scale: "A minor",
+      time_signature: "4/4",
+      audio_duration: 180,
     });
   });
 
@@ -78,6 +85,14 @@ describe("AceStepClient result parsing", () => {
       file: "/v1/audio?path=%2Fapp%2Foutput%2Fsong.mp3",
       status: 1,
     });
+  });
+
+  it("preserves native ACE-Step LRC alignment", () => {
+    expect(
+      client.parseFirstAudio(
+        '[{"file":"/v1/audio?path=song.flac","lrc_text":"[00:12.34]Rise"}]',
+      ),
+    ).toMatchObject({ lrc_text: "[00:12.34]Rise" });
   });
 
   it("rejects results without an audio file", () => {

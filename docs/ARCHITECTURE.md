@@ -6,7 +6,7 @@
 2. The worker atomically changes it to `SUBMITTING` and calls the official `POST /release_task` endpoint.
 3. It saves the returned `task_id`, changes the status to `PROCESSING`, and periodically calls `POST /query_result`.
 4. If the profile has a reference, the worker passes its read-only `/references/...` path to ACE-Step. The reference controls global acoustic character without becoming the structural source audio.
-5. When ACE-Step reports status `1`, the worker downloads the lossless FLAC into `data/tracks` and derives a 192 kbps MP3 browser preview with FFmpeg.
+5. When ACE-Step reports status `1`, the worker stores the native LRC alignment, downloads the lossless FLAC into `data/tracks`, and derives a 192 kbps MP3 browser preview with FFmpeg.
 6. The audio route supports HTTP byte ranges so the browser can seek without downloading the entire MP3 again. FLAC and MP3 are separately downloadable.
 7. Only after atomically renaming the files does the worker set `COMPLETED`. The UI polls its own API and displays the player.
 
@@ -19,15 +19,15 @@
 5. The browser overlays the current lyric line on the cover while the ordinary seekable audio element plays.
 6. A separate video request uses FFmpeg to scale the cover to 1080p, burn timed lyrics, preserve the lossless source until final AAC encoding, and create a fast-start H.264 MP4.
 
-New vocal tracks receive an estimated LRC file derived from their known lyrics and actual audio duration. On worker startup, the same operation backfills existing vocal tracks. ACE-Step 1.5 has an Auto-LRC feature in its Gradio application, but the pinned REST `release_task` contract does not expose it; exact forced alignment remains a future replacement behind the same stored `lyricsLrc` field.
+The pinned REST implementation normally drops the generation tensors before returning a result. The local ACE-Step image applies a small, fail-fast overlay that invokes the upstream latent-attention Auto-LRC code before that point and adds `lrc_text` to the existing result item. The worker removes section labels and performance directions, then stores standard LRC. Duration-based estimation remains a fallback for upstream failures and tracks created before this integration.
 
 ## Components
 
-- `apps/web`: Next.js 16 App Router, React 19, strict TypeScript, Tailwind 4, and server-side API routes.
+- `apps/web`: Next.js 16 App Router, React 19, strict TypeScript, Tailwind 4, shadcn/ui primitives, and server-side API routes.
 - `apps/worker`: long-running Node worker; queue processing and polling stay outside the web process.
 - `apps/image-service`: private FastAPI/diffusers service with a configurable model ID; no host port is published.
 - `packages/db`: Prisma schema, client, and versioned SQLite migrations.
-- `acestep`: official Python/CUDA image in API mode; it is neither forked nor repackaged.
+- `apps/ace-step`: a minimal overlay built on the pinned official Python/CUDA image. It preserves the official API and adds native LRC to completed results without maintaining a fork.
 - `data/` bind mounts: the single persistence and backup boundary for database, audio, images, videos, and model caches.
 
 ## Artist-profile snapshots

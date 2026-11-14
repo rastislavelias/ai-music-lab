@@ -72,6 +72,22 @@ export function buildEstimatedLrc(lyrics: string, duration: number) {
     .join("\n");
 }
 
+export function sanitizeNativeLrc(lrc: string) {
+  return lrc
+    .split(/\r?\n/)
+    .filter((line) => {
+      const match = /^\[\d+:\d+(?:\.\d+)?\](.*)$/.exec(line.trim());
+      if (!match) return false;
+      const text = match[1].trim();
+      return (
+        text.length > 0 &&
+        !/^\[[^\]]+\]$/.test(text) &&
+        !/^\([^)]*\)$/.test(text)
+      );
+    })
+    .join("\n");
+}
+
 function parseLrc(lrc: string) {
   return lrc
     .split(/\r?\n/)

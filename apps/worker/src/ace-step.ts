@@ -1,6 +1,7 @@
 export type AceTaskResult = {
   file: string;
   status?: number;
+  lrc_text?: string;
 };
 
 type ApiEnvelope<T> = {
@@ -22,6 +23,9 @@ export type AceSubmitInput = {
   instrumental: boolean;
   seed: number;
   bpm?: number | null;
+  keyScale?: string;
+  timeSignature?: string;
+  audioDuration?: number | null;
   vocalLanguage: string;
   referenceAudioPath?: string;
 };
@@ -53,6 +57,9 @@ export class AceStepClient {
           use_random_seed: false,
           seed: input.seed,
           bpm: input.bpm ?? null,
+          key_scale: input.keyScale ?? "",
+          time_signature: input.timeSignature ?? "4/4",
+          audio_duration: input.audioDuration ?? null,
           vocal_language: input.vocalLanguage,
           reference_audio_path: input.referenceAudioPath ?? null,
         }),

@@ -24,7 +24,15 @@ ACE-Step remains loaded on the GPU. The image service therefore defaults to sequ
 
 ## Timed lyrics
 
-ACE-Step documents Auto-LRC, but the pinned official REST request model does not expose an Auto-LRC option. This version creates an explicitly labelled first-pass line timing from the known lyrics and measured audio duration. The database and UI already use standard LRC text so a future forced aligner can improve accuracy without a schema or player redesign.
+ACE-Step documents Auto-LRC, but the pinned official REST request model discards the latent tensors before exposing the result. The project builds a minimal, fail-fast overlay on the pinned official image that calls ACE-Step's native latent-attention aligner before those tensors are released and adds `lrc_text` to the existing result item. The worker removes non-sung section and performance directions before storing standard LRC. Estimated timing remains only as a fallback when native alignment is unavailable and for tracks generated before this integration.
+
+## Explicit musical metadata
+
+BPM written only in prose is not reliable. A verified generation requested approximately 104 BPM in its prompt but ACE-Step selected 48 BPM because the structured request left BPM unset. The create form therefore sends explicit BPM, duration, key/scale, and meter values to the official REST fields. These values are stored per track for provenance and are shown in the library.
+
+## UI component foundation
+
+The web application uses project-owned shadcn/ui primitives with the `new-york` style, Tailwind 4 semantic theme variables, and Radix accessibility primitives for select and checkbox behaviour. The components remain in the repository so the product can evolve its visual identity without depending on a runtime component service.
 
 ## Persistence
 
@@ -42,9 +50,9 @@ The application has no authentication and port 3000 must not be exposed to the i
 
 - Retry, cancellation, and priorities.
 - AI lyrics generation.
-- Precise phoneme/word forced alignment and a lyric timing editor.
+- A lyric timing editor for manual corrections.
 - Animated covers, parallax, image LoRA, and visual profiles.
-- Duration, key, manual seed, and model selector.
+- Manual seed and model selector.
 - Uploaded reference audio, source-audio cover, repaint, and stems.
 - PostgreSQL, Redis, and S3.
 - Observability, quotas, and public authentication.

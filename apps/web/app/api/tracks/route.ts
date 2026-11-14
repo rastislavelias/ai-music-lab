@@ -16,6 +16,20 @@ const createTrackSchema = z
     lyrics: z.string().trim().max(10000).optional().default(""),
     profileId: z.string().min(1).nullable().optional().default(null),
     variants: z.number().int().min(1).max(4).optional().default(1),
+    bpm: z.number().int().min(40).max(240).nullable().optional().default(null),
+    keyScale: z.string().trim().max(40).optional().default(""),
+    timeSignature: z
+      .enum(["2/4", "3/4", "4/4", "6/8"])
+      .optional()
+      .default("4/4"),
+    audioDuration: z
+      .number()
+      .int()
+      .min(10)
+      .max(600)
+      .nullable()
+      .optional()
+      .default(null),
   })
   .superRefine((track, context) => {
     if (!track.instrumental && track.lyrics.length < 3) {
@@ -34,6 +48,10 @@ function toView(track: {
   instrumental: boolean;
   profileId: string | null;
   seed: number | null;
+  bpm: number | null;
+  keyScale: string;
+  timeSignature: string;
+  audioDuration: number | null;
   generationGroupId: string | null;
   masterFileName: string | null;
   lyricsLrc: string;
@@ -82,7 +100,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const { variants, profileId, ...input } = parsed.data;
+  const { variants, profileId, bpm, ...input } = parsed.data;
   const profile = profileId
     ? await prisma.artistProfile.findUnique({ where: { id: profileId } })
     : null;
@@ -103,7 +121,7 @@ export async function POST(request: Request) {
           basePrompt: profile?.basePrompt ?? "",
           referenceTrackId: profile?.referenceTrackId ?? null,
           vocalLanguage: profile?.vocalLanguage ?? "en",
-          bpm: profile?.bpm ?? null,
+          bpm: bpm ?? profile?.bpm ?? null,
           seed: randomInt(1, 2_147_483_647),
           generationGroupId,
         },

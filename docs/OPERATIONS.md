@@ -12,13 +12,12 @@ ACE-Step also documents CPU, MPS, ROCm, and Intel XPU support, but the official 
 git clone <repo-url> ai-music-lab
 cd ai-music-lab
 cp .env.example .env
-docker compose pull acestep
 docker compose up -d --build
 docker compose ps
 docker compose logs -f acestep imagegen worker
 ```
 
-`migrate` is a one-shot service. Web and worker start only after Prisma migrations succeed. ACE-Step downloads models lazily when the first song is submitted. The image service starts quickly but downloads and loads its model lazily on the first cover request. Both use persistent bind mounts; monitor disk usage and logs.
+`migrate` is a one-shot service. Web and worker start only after Prisma migrations succeed. Compose builds the small local ACE-Step alignment overlay from the pinned official base image. ACE-Step downloads models lazily when the first song is submitted. The image service starts quickly but downloads and loads its model lazily on the first cover request. Both use persistent bind mounts; monitor disk usage and logs.
 
 Allow at least 40 GB of free disk for the image cache and temporary download data. The cover endpoint streams JSON whitespace while a long first-run download or generation is active. This is intentional: it prevents the default five-minute HTTP header timeout from incorrectly marking an otherwise healthy first cover as failed.
 
@@ -68,9 +67,10 @@ The restore script does not delete existing `data/`; it renames the directory to
 
 1. Read the upstream release notes and API changes.
 2. Create a backup.
-3. Set `ACESTEP_IMAGE` in `.env` to a specific tag.
-4. Run `docker compose pull acestep && docker compose up -d acestep worker`.
-5. Verify health, a test generation, and MP3 download.
+3. Set `ACESTEP_IMAGE` in `.env` to a specific official tag.
+4. Review whether the exact overlay patch still applies to that version; the build deliberately fails if expected upstream source locations changed.
+5. Run `docker compose build --pull acestep && docker compose up -d acestep worker`.
+6. Verify health, native LRC output from a vocal test generation, and MP3 download.
 
 If the API contract changed, restore the previous tag. The model cache and application data remain in bind mounts.
 

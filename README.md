@@ -7,15 +7,17 @@ A local web application for asynchronous music generation with ACE-Step 1.5. Art
 - Production prompt plus user-provided lyrics, or an instrumental flag.
 - Artist profiles with reusable core sound, BPM, language, and style reference.
 - One, two, or four independently seeded variants per request.
+- Explicit BPM, key/scale, time signature, and duration controls for repeatable musical intent.
 - Asynchronous queue with `queued → generating → ready/failed` states.
 - ACE-Step 1.5 REST API in a dedicated GPU container.
 - Persistent Prisma SQLite database, lossless FLAC masters, and MP3 previews.
 - Local Z-Image-Turbo cover generation through an isolated, replaceable image service.
 - Recent track list, visual player with timed lyrics, FLAC/MP3/PNG download, and “Use as style reference”.
 - FFmpeg-rendered 1080p MP4 export with the cover, audio, and lyrics.
+- A shadcn/ui component foundation with a project-owned dark theme.
 - No registration, authentication, or public deployment.
 
-AI lyrics generation, exact forced lyric alignment, animated image generation, source-audio cover/repaint, retry/cancel, multiple users, object storage, and public deployment are intentionally outside the MVP.
+AI lyrics generation, manual lyric-timing correction, animated image generation, source-audio cover/repaint, retry/cancel, multiple users, object storage, and public deployment are intentionally outside the MVP.
 
 ## Start with one command
 
@@ -91,5 +93,6 @@ The local worker expects ACE-Step at `http://localhost:8001`; using the full Com
 - [Operations, backup, and recovery](docs/OPERATIONS.md)
 - [Verified ACE-Step sources](docs/ACE_STEP_VERIFICATION.md)
 - [Image model licensing and runtime](docs/IMAGE_MODELS.md)
+- [Product roadmap](docs/ROADMAP.md)
 
 Before commercial use, review the code and model-weight licences and the legal status of generated material.

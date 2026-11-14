@@ -1,4 +1,26 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted-surface);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent-surface);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+}
 
 :root {
   --ink: #f7f5ef;
@@ -6,6 +28,24 @@
   --accent: #c8ff55;
   --panel: rgba(25, 26, 29, 0.78);
   --line: rgba(255, 255, 255, 0.1);
+  --background: #0d0e10;
+  --foreground: #f7f5ef;
+  --card: rgba(20, 21, 24, 0.76);
+  --card-foreground: #f7f5ef;
+  --popover: #1b1c20;
+  --popover-foreground: #f7f5ef;
+  --primary: #c8ff55;
+  --primary-foreground: #14170e;
+  --secondary: rgba(255, 255, 255, 0.065);
+  --secondary-foreground: #f7f5ef;
+  --muted-surface: rgba(255, 255, 255, 0.055);
+  --muted-foreground: #a6a7ad;
+  --accent-surface: rgba(200, 255, 85, 0.12);
+  --accent-foreground: #d9ff88;
+  --destructive: #fb7185;
+  --border: rgba(255, 255, 255, 0.1);
+  --input: rgba(0, 0, 0, 0.24);
+  --ring: #c8ff55;
 }
 
 * {
@@ -57,90 +97,10 @@ h2 {
   backdrop-filter: blur(20px);
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.28);
 }
-textarea {
-  width: 100%;
-  min-height: 145px;
-  resize: vertical;
-  margin-top: 0.75rem;
-  border: 1px solid var(--line);
-  border-radius: 1rem;
-  background: rgba(0, 0, 0, 0.22);
-  color: white;
-  padding: 1rem;
-  font: inherit;
-  line-height: 1.55;
-  outline: none;
-  transition:
-    border-color 0.2s,
-    box-shadow 0.2s;
-}
-textarea:focus {
-  border-color: rgba(200, 255, 85, 0.7);
-  box-shadow: 0 0 0 3px rgba(200, 255, 85, 0.08);
-}
-textarea::placeholder {
-  color: #666970;
-}
-.lyrics-input {
-  min-height: 220px;
-}
-.compact-textarea {
-  min-height: 110px;
-  margin-top: 0.5rem;
-  font-size: 0.85rem;
-}
-.field {
-  width: 100%;
-  min-height: 44px;
-  border: 1px solid var(--line);
-  border-radius: 0.8rem;
-  background: rgba(0, 0, 0, 0.22);
-  color: white;
-  padding: 0.7rem 0.8rem;
-  font: inherit;
-  outline: none;
-}
-.field:focus {
-  border-color: rgba(200, 255, 85, 0.7);
-  box-shadow: 0 0 0 3px rgba(200, 255, 85, 0.08);
-}
 .field-label {
   color: #b8b9bd;
   font-size: 0.72rem;
   font-weight: 700;
-}
-button {
-  border: 0;
-  border-radius: 999px;
-  background: var(--accent);
-  color: #14170e;
-  padding: 0.8rem 1.25rem;
-  font-weight: 800;
-  cursor: pointer;
-  transition:
-    transform 0.15s,
-    opacity 0.15s;
-}
-button:hover:not(:disabled) {
-  transform: translateY(-1px);
-}
-button:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-button.secondary {
-  border: 1px solid var(--line);
-  border-radius: 0.8rem;
-  background: rgba(255, 255, 255, 0.06);
-  color: white;
-  padding: 0.7rem 0.9rem;
-}
-button.text-button {
-  border: 0;
-  background: transparent;
-  color: var(--accent);
-  padding: 0.3rem 0;
-  font-size: 0.8rem;
 }
 .toggle-row {
   display: flex;
@@ -149,11 +109,6 @@ button.text-button {
   color: #d6d6d7;
   font-size: 0.9rem;
   cursor: pointer;
-}
-.toggle-row input {
-  width: 1rem;
-  height: 1rem;
-  accent-color: var(--accent);
 }
 .track-card {
   display: flex;

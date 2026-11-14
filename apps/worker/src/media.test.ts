@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildEstimatedLrc } from "./media";
+import { buildEstimatedLrc, sanitizeNativeLrc } from "./media";
 
 describe("buildEstimatedLrc", () => {
   it("creates ordered timestamps for visible lyric lines", () => {
@@ -15,5 +15,15 @@ describe("buildEstimatedLrc", () => {
 
   it("returns no cues for an instrumental marker", () => {
     expect(buildEstimatedLrc("[Instrumental]", 90)).toBe("");
+  });
+});
+
+describe("sanitizeNativeLrc", () => {
+  it("keeps sung lines and removes section and performance directions", () => {
+    expect(
+      sanitizeNativeLrc(
+        "[00:00.00][Verse]\n[00:01.12]First line\n[00:02.00](soft breath)\n[00:05.40]Second line",
+      ),
+    ).toBe("[00:01.12]First line\n[00:05.40]Second line");
   });
 });

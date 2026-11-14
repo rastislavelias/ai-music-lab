@@ -59,7 +59,12 @@ services:
       IMAGE_TASK_TIMEOUT_MS: ${IMAGE_TASK_TIMEOUT_MS:-3600000}
 
   acestep:
-    image: ${ACESTEP_IMAGE:-ghcr.io/ace-step/ace-step-1.5:0.1.8}
+    build:
+      context: .
+      dockerfile: apps/ace-step/Dockerfile
+      args:
+        ACESTEP_BASE_IMAGE: ${ACESTEP_IMAGE:-ghcr.io/ace-step/ace-step-1.5:0.1.8}
+    image: ai-music-lab-acestep:local
     environment:
       NVIDIA_VISIBLE_DEVICES: all
       ACESTEP_MODE: api
