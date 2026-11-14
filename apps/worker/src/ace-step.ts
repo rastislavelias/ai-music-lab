@@ -27,6 +27,7 @@ export type AceSubmitInput = {
   timeSignature?: string;
   audioDuration?: number | null;
   inferenceSteps?: number;
+  shift?: number;
   vocalLanguage: string;
   referenceAudioPath?: string;
 };
@@ -62,6 +63,7 @@ export class AceStepClient {
           time_signature: input.timeSignature ?? "4/4",
           audio_duration: input.audioDuration ?? null,
           inference_steps: input.inferenceSteps ?? 8,
+          shift: input.shift ?? 3,
           vocal_language: input.vocalLanguage,
           reference_audio_path: input.referenceAudioPath ?? null,
         }),

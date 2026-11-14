@@ -28,6 +28,7 @@ describe("AceStepClient submission", () => {
         timeSignature: "4/4",
         audioDuration: 180,
         inferenceSteps: 50,
+        shift: 1,
         vocalLanguage: "en",
         referenceAudioPath: "references/style.flac",
       }),
@@ -46,6 +47,7 @@ describe("AceStepClient submission", () => {
       time_signature: "4/4",
       audio_duration: 180,
       inference_steps: 50,
+      shift: 1,
     });
   });
 

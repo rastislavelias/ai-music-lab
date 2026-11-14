@@ -36,7 +36,7 @@ The web application uses project-owned shadcn/ui primitives with the `new-york` 
 
 ## Quality inference mode
 
-The worker exposes `ACESTEP_INFERENCE_STEPS` as a deployment setting. Turbo remains the portable eight-step default in the repository, while a server may deliberately select the official `acestep-v15-xl-sft` checkpoint and 50 steps for slower final-quality auditions. Cover generation remains a separate user action so rejected audio variants do not consume image-generation time.
+The worker exposes `ACESTEP_INFERENCE_STEPS` and `ACESTEP_SHIFT` as deployment settings. Turbo remains the portable eight-step, shift-3 default in the repository, while a server may deliberately select the official `acestep-v15-xl-sft` checkpoint with 50 steps and shift 1 for slower final-quality auditions. Using Turbo's shift 3 with SFT can severely degrade the generated audio. Cover generation remains a separate user action so rejected audio variants do not consume image-generation time.
 
 ## Persistence
 
