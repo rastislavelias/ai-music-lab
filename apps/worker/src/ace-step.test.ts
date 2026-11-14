@@ -28,7 +28,7 @@ describe("AceStepClient submission", () => {
         timeSignature: "4/4",
         audioDuration: 180,
         vocalLanguage: "en",
-        referenceAudioPath: "/references/style.flac",
+        referenceAudioPath: "references/style.flac",
       }),
     ).resolves.toBe("task-1");
 
@@ -39,7 +39,7 @@ describe("AceStepClient submission", () => {
       audio_format: "flac",
       seed: 1234,
       use_random_seed: false,
-      reference_audio_path: "/references/style.flac",
+      reference_audio_path: "references/style.flac",
       bpm: 124,
       key_scale: "A minor",
       time_signature: "4/4",

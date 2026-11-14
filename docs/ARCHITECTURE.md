@@ -5,7 +5,7 @@
 1. The Next.js API snapshots the selected artist profile and writes one to four independently seeded `Track` rows with status `QUEUED`.
 2. The worker atomically changes it to `SUBMITTING` and calls the official `POST /release_task` endpoint.
 3. It saves the returned `task_id`, changes the status to `PROCESSING`, and periodically calls `POST /query_result`.
-4. If the profile has a reference, the worker passes its read-only `/references/...` path to ACE-Step. The reference controls global acoustic character without becoming the structural source audio.
+4. If the profile has a reference, the worker passes its read-only `references/...` path to ACE-Step. The directory is mounted at `/app/references`, keeping the API value relative as required by the upstream path validator. The reference controls global acoustic character without becoming the structural source audio.
 5. When ACE-Step reports status `1`, the worker stores the native LRC alignment, downloads the lossless FLAC into `data/tracks`, and derives a 192 kbps MP3 browser preview with FFmpeg.
 6. The audio route supports HTTP byte ranges so the browser can seek without downloading the entire MP3 again. FLAC and MP3 are separately downloadable.
 7. Only after atomically renaming the files does the worker set `COMPLETED`. The UI polls its own API and displays the player.

@@ -36,7 +36,7 @@ The web application uses project-owned shadcn/ui primitives with the `new-york` 
 
 ## Persistence
 
-The official Compose mounts `/app/checkpoints`, the Hugging Face cache, `/app/gradio_outputs`, and `/app/output`. This project preserves those container paths while using bind mounts under `data/`, allowing model data to be backed up alongside SQLite, FLAC masters, MP3 previews, PNG covers, and MP4 exports. The track library is mounted read-only at `/references` inside ACE-Step.
+The official Compose mounts `/app/checkpoints`, the Hugging Face cache, `/app/gradio_outputs`, and `/app/output`. This project preserves those container paths while using bind mounts under `data/`, allowing model data to be backed up alongside SQLite, FLAC masters, MP3 previews, PNG covers, and MP4 exports. The track library is mounted read-only at `/app/references`; the worker sends a relative `references/...` value because the upstream API intentionally rejects absolute audio paths.
 
 The ACE-Step queue and job store are in memory. SQLite is therefore the source of truth for the user-facing library. Submitted `PROCESSING` jobs are polled again after a restart using their saved `task_id`. An ambiguous `SUBMITTING` job is marked failed after a crash to avoid silently creating a duplicate.
 

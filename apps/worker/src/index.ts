@@ -74,7 +74,7 @@ async function submit(track: Track) {
     const referenceFileName =
       referenceTrack?.masterFileName ?? referenceTrack?.fileName;
     const referenceAudioPath = referenceFileName
-      ? `/references/${path.basename(referenceFileName)}`
+      ? `references/${path.basename(referenceFileName)}`
       : undefined;
     const taskId = await ace.submit({
       prompt: [track.basePrompt, track.prompt].filter(Boolean).join(", "),

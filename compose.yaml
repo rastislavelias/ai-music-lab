@@ -89,7 +89,7 @@ services:
       - ./data/huggingface:/root/.cache/huggingface
       - ./data/acestep/gradio_outputs:/app/gradio_outputs
       - ./data/acestep/output:/app/output
-      - ./data/tracks:/references:ro
+      - ./data/tracks:/app/references:ro
     shm_size: 2gb
     restart: unless-stopped
     healthcheck:

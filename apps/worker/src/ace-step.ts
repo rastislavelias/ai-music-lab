@@ -125,8 +125,18 @@ export class AceStepClient {
       headers: { ...this.authHeaders(), ...init.headers },
     });
     const body = (await response.json().catch(() => null)) as T | null;
-    if (!response.ok)
-      throw new Error(`ACE-Step API failed (HTTP ${response.status}).`);
+    if (!response.ok) {
+      const failure = body as { detail?: unknown; error?: unknown } | null;
+      const reason =
+        typeof failure?.detail === "string"
+          ? failure.detail
+          : typeof failure?.error === "string"
+            ? failure.error
+            : null;
+      throw new Error(
+        `ACE-Step API failed (HTTP ${response.status})${reason ? `: ${reason}` : "."}`,
+      );
+    }
     const envelope = body as ApiEnvelope<unknown> | null;
     if (!envelope || envelope.code !== 200 || envelope.error) {
       throw new Error(
