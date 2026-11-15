@@ -72,6 +72,12 @@ docker compose up -d --build
 
 See [docs/OPERATIONS.md](docs/OPERATIONS.md) for the full runbook.
 
+## AI-assisted development
+
+This project was developed through an AI-assisted workflow using OpenAI Codex. Codex was used to generate and revise application code, infrastructure, tests, and documentation.
+
+I defined the product requirements, scope, constraints, and acceptance criteria; directed the architecture and implementation; reviewed generated changes; tested the system on the target NVIDIA GPU; diagnosed model, integration, and deployment failures; and validated the final behaviour. This repository demonstrates product definition, systems integration, technical decision-making, verification, and responsible AI-assisted software development. It is not presented as a claim that every line was written manually.
+
 ## Development
 
 ```bash
